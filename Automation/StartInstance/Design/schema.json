@@ -1,0 +1,19 @@
+{
+   "description":"Start EC2 instances(s)",
+   "schemaVersion":"0.3",
+   "assumeRole":"{{ AutomationAssumeRole }}",
+   "parameters":{
+      "AutomationAssumeRole":{
+         "type":"String",
+         "description":" The ARN of the role that allows Automation to perform the actions on your behalf.",
+         "default":"arn:aws:iam::{{global:ACCOUNT_ID}}:role/AutomationServiceRole"
+      },
+      "InstanceIds":{
+         "type":"String",
+         "description":"EC2 Instance(s) Start"
+      }
+   },
+   "mainSteps":[
+      
+   ]
+}
