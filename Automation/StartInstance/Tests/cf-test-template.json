@@ -1,0 +1,27 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Creates 3 EC2 instances to run SSM tests against",
+  "Resources": {
+    "Ec2Instance1": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": "ami-8c1be5f6",
+        "InstanceType": "t2.micro"
+      }
+    },
+    "Ec2Instance2": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": "ami-8c1be5f6",
+        "InstanceType": "t2.micro"
+      }
+    },
+    "Ec2Instance3": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": "ami-8c1be5f6",
+        "InstanceType": "t2.micro"
+      }
+    }
+  }
+}
