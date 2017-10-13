@@ -1,0 +1,27 @@
+{
+   "description":"Start EC2 instances(s)",
+   "schemaVersion":"0.3",
+   "assumeRole":"{{ AutomationAssumeRole }}",
+   "parameters":{
+      "AutomationAssumeRole":{
+         "type":"String",
+         "description":" The ARN of the role that allows Automation to perform the actions on your behalf.",
+         "default":"arn:aws:iam::{{global:ACCOUNT_ID}}:role/AutomationServiceRole"
+      },
+      "InstanceIds":{
+         "type":"String",
+         "description":"EC2 Instance(s) Start"
+      },
+      "Approvers":{
+         "type":"StringList",
+         "description":"IAM user or user arn of approvers for the automation action"
+      },
+      "SNSTopicArn":{
+         "type":"String",
+         "description":"The SNS topic ARN that you are using to get notifications on about EC2 retirement notifications. The SNS topic name must start with Automation."
+      }
+   },
+   "mainSteps":[
+      
+   ]
+}
