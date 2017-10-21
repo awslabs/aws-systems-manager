@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Main test file for SSM document."""
+"""Main test file for Stop Instances SSM document."""
 
 import ConfigParser
 import glob
@@ -32,8 +32,8 @@ PREFIX = CONFIG.get('general', 'resource_prefix')
 AMIID = CONFIG.get('linux', 'ami')
 SERVICEROLENAME = CONFIG.get('general', 'automation_service_role_name')
 INSTANCETYPE = CONFIG.get('linux', 'instance_type')
-SSMDOCNAME = PREFIX + 'automation-startinstance'
-INSTANCECFNSTACKNAME = PREFIX + 'automation-startinstance'
+SSMDOCNAME = PREFIX + 'automation-stopinstance'
+INSTANCECFNSTACKNAME = PREFIX + 'automation-stopinstance'
 
 if CONFIG.get('general', 'log_level') == 'warn':
     logging.basicConfig(level=logging.WARN)
@@ -52,6 +52,17 @@ class TestCase(unittest.TestCase):
             assert demjson.jsonlint('jsonlint').main([i]) == 0, (
                 'JSON documents are not well formed')
 
+    """"\
+    Test approach:
+        Create CF (CloudFormation) template
+        Run CF template, which will start 2 EC2 instances
+        Ensure CF template has successfully executed and that the EC2 instances are currently running
+        Create the SSM Automation document
+        Ensure Automation document is created successfully
+        Execute automation document (which will stop the specified EC2 instances)
+        Verify EC2 instances are in stopped state
+        Teardown CF and delete automation doc
+    """
     @staticmethod
     def testdocument():
         """Verify correct deployment and use of document."""
@@ -63,7 +74,7 @@ class TestCase(unittest.TestCase):
             ssm_client=ssm_client,
             doc_filename=os.path.join(DOCDIR,
                                       'Documents',
-                                      'aws-StartEC2Instance.json'),
+                                      'aws-StopEC2Instance.json'),
             doc_name=SSMDOCNAME,
             doc_type='Automation'
         )
@@ -73,7 +84,7 @@ class TestCase(unittest.TestCase):
             template_filename=os.path.join(DOCDIR,
                                            'Tests',
                                            'CloudFormationTemplates',
-                                           'ThreeInstances.json'),
+                                           'TwoInstances.json'),
             stack_name=INSTANCECFNSTACKNAME
         )
 
@@ -83,7 +94,7 @@ class TestCase(unittest.TestCase):
             SERVICEROLENAME
         )
 
-        LOGGER.info('Starting 3 instances for testing')
+        LOGGER.info('Starting 2 instances for testing')
         test_cf_stack.create_stack([
             {
                 'ParameterKey': 'AMI',
@@ -100,40 +111,10 @@ class TestCase(unittest.TestCase):
                                                            'created '
                                                            'successfully')
 
-            LOGGER.info('Stopping instances')
-            ec2_client.stop_instances(
-                InstanceIds=[
-                    x for x in test_cf_stack.stack_outputs.itervalues()
-                ]
-            )
-
-            LOGGER.info('Ensuring instances have stopped')
-            ssm_doc.ensure_no_instance_in_state(
-                ec2_client,
-                'stopping',
-                [x for x in test_cf_stack.stack_outputs.itervalues()])
-
-            LOGGER.info('Running automation to start single instance')
-            instance_0 = test_cf_stack.stack_outputs['Instance0Id']
-            execution_0 = ssm_doc.execute_automation(
-                params={'InstanceIds': [instance_0]}
-            )
-
-            LOGGER.info('Running automation to start multiple instances '
+            LOGGER.info('Running automation to stop multiple instances '
                         '(using defined role)')
-            instances_1_2 = [test_cf_stack.stack_outputs['Instance1Id'],
-                             test_cf_stack.stack_outputs['Instance2Id']]
-            execution_1 = ssm_doc.execute_automation(
-                params={'InstanceIds': instances_1_2,
-                        'AutomationAssumeRole': [automation_role]})
-
-            LOGGER.info('Verifying automation executions have concluded '
-                        'successfully')
-            for i in [execution_0, execution_1]:
-                assert ssm_doc.automation_execution_status(
-                    ssm_client,
-                    i
-                ) == 'Success', 'Instance not started'
+            instances_1_2 = [test_cf_stack.stack_outputs['Instance0Id'],
+                             test_cf_stack.stack_outputs['Instance1Id']]
 
             LOGGER.info('Verifying all instances are running')
             describe_res = ec2_client.describe_instance_status(
@@ -144,6 +125,44 @@ class TestCase(unittest.TestCase):
             )
             assert all(d['InstanceState']['Name'] == 'running' for d in describe_res['InstanceStatuses']) is True, (  # noqa pylint: disable=line-too-long
                 'Instances not started')
+
+            LOGGER.info("Executing SSM automation document to stop instances")
+            execution = ssm_doc.execute_automation(
+                params={'InstanceIds': instances_1_2,
+                        'AutomationAssumeRole': [automation_role]})
+
+            LOGGER.info('Verifying automation executions have concluded '
+                        'successfully')
+
+            LOGGER.info('Ensuring instances have stopped')
+            ssm_doc.ensure_no_instance_in_state(
+                ec2_client,
+                'stopping',
+                [x for x in test_cf_stack.stack_outputs.itervalues()])
+
+            assert ssm_doc.automation_execution_status(
+                ssm_client,
+                execution
+            ) == 'Success', 'Instance not started'
+
+            LOGGER.info("Executing SSM automation document to stop instances")
+            execution = ssm_doc.execute_automation(
+                params={'InstanceIds': instances_1_2,
+                        'AutomationAssumeRole': [automation_role]})
+
+            LOGGER.info('Verifying automation executions have concluded '
+                        'successfully')
+
+            LOGGER.info('Ensuring instances have stopped')
+            ssm_doc.ensure_no_instance_in_state(
+                ec2_client,
+                'stopping',
+                [x for x in test_cf_stack.stack_outputs.itervalues()])
+
+            assert ssm_doc.automation_execution_status(
+                ssm_client,
+                execution
+            ) == 'Success', 'Instance not started'
 
         finally:
             test_cf_stack.delete_stack()
