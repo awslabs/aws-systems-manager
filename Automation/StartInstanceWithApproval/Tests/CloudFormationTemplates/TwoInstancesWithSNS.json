@@ -1,0 +1,65 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Test stack for SSM Automation - StartInstanceWithApproval",
+  "Outputs": {
+    "Instance0Id": {
+      "Description": "Instance Id",
+      "Value": {
+        "Ref": "Instance0"
+      }
+    },
+    "Instance1Id": {
+      "Description": "Instance Id",
+      "Value": {
+        "Ref": "Instance1"
+      }
+    },
+    "SNSTopicArn": {
+      "Description": "ARN for the created SNS topic",
+      "Value": {
+        "Ref": "SNSTopic"
+      }
+    }
+  },
+  "Parameters": {
+    "AMI": {
+      "Description": "AMI ID for instances.",
+      "Type": "String"
+    },
+    "INSTANCETYPE": {
+      "Description": "AMI Instance Type (t2.micro, m1.large, etc.)",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "SNSTopic": {
+      "Type" : "AWS::SNS::Topic",
+      "Properties" : {
+        "DisplayName": "Automation Approval Topic for Starting EC2 Instances",
+        "TopicName": "Automation_Start_Instances_Approval"
+      }
+    },
+    "Instance0": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "AMI"
+        },
+        "InstanceType": {
+          "Ref": "INSTANCETYPE"
+        }
+      }
+    },
+    "Instance1": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "AMI"
+        },
+        "InstanceType": {
+          "Ref": "INSTANCETYPE"
+        }
+      }
+    }
+  }
+}

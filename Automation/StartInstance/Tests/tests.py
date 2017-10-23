@@ -18,7 +18,7 @@ REPOROOT = os.path.dirname(DOCDIR)
 sys.path.append(
     os.path.join(
         REPOROOT,
-        'testing'
+        'Testing'
     )
 )
 import ssm_testing  # noqa pylint: disable=import-error,wrong-import-position

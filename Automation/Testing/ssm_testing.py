@@ -5,7 +5,8 @@ import logging
 import time
 
 LOGGER = logging.getLogger(__name__)
-PENDING_AUTOMATION_STATUS = ('Pending', 'InProgress', 'Waiting')
+PENDING_AUTOMATION_STATUS = ('Pending', 'InProgress')
+PENDING_AUTOMATION_STATUS_WITH_WAITING = ('Pending', 'InProgress', 'Waiting')
 PENDING_DOC_STATUS = ('Creating', 'Updating')
 
 
@@ -133,11 +134,14 @@ class SSMTester(object):
         self.ssm_client.delete_document(Name=self.doc_name)
 
     @staticmethod
-    def automation_execution_status(ssm_client, execution_id):
+    def automation_execution_status(ssm_client, execution_id, block_on_waiting=True):
         """Return execution status, waiting for completion if in progress."""
+        statuses = PENDING_AUTOMATION_STATUS_WITH_WAITING
+        if not block_on_waiting:
+            statuses = PENDING_AUTOMATION_STATUS
         while ssm_client.get_automation_execution(
                 AutomationExecutionId=execution_id
-        )['AutomationExecution']['AutomationExecutionStatus'] in PENDING_AUTOMATION_STATUS:  # noqa pylint: disable=line-too-long
+        )['AutomationExecution']['AutomationExecutionStatus'] in statuses:  # noqa pylint: disable=line-too-long
             LOGGER.info('Waiting 10 seconds before checking again '
                         'for automation conclusion')
             time.sleep(10)
@@ -147,7 +151,7 @@ class SSMTester(object):
 
     @staticmethod
     def ensure_no_instance_in_state(ec2_client, state, instances=None):
-        """Wait for a list of instances to stop being in a specifed state."""
+        """Wait for a list of instances to stop being in a specified state."""
         if instances is None:
             instances = []
 
