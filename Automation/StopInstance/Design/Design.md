@@ -17,10 +17,9 @@ Document Steps:
 ## Test script
 
 Python script will:
-  1. Create 3 instances (instances 'a', 'b', & 'c')
-  2. Stop the 3 instances
+  1. Create 2 instances (instances 'a' & 'b')
+  2. Stop the 2 instances
   3. Create the Automation Document
-  4. Execute the document twice: once for instance 'a' (to test invocation with a single instance), and again for instances 'b' & 'c' (to test a list of instances)
-  5. Verify the instances are in a running state
-  6. Stop the instances and verify they are in the 'stopped' state
-  7. Destroy the instances
+  4. Execute the document for instances 'a' & 'b' (to test a list of instances)
+  5. Verify the instances are in the 'stopped' state
+  6. Destroy the instances
