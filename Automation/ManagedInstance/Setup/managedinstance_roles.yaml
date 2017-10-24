@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation template IAM Roles for Systems Manager | Automation Service
+Parameters:
+  AutomationServiceRoleName:
+    Type: String
+    Default: 'NanaSSMAutomationRole'
+    Description: 'Name of the role that needs to be created'
+Resources:
+
+  AutomationServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 
+        Ref: AutomationServiceRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ssm.amazonaws.com
+            - ec2.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonSSMAutomationRole
+      - arn:aws:iam::aws:policy/AWSLambdaFullAccess
+      Path: "/"
+
+Outputs:
+  ServiceRole:
+    Value: !GetAtt AutomationServiceRole.Arn
+  

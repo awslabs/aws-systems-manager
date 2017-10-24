@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "0.3",
+  "description": "Creates a Windows Managed Instance",
+  "assumeRole": "{{AutomationAssumeRole}}",
+   "parameters": {
+	"AutomationAssumeRole": {
+		"type": "String",
+		"description": "The ARN of the role that allows Automation to perform the actions on your behalf",
+		"default": ""
+	},
+	"LambdaAssumeRole": {
+		"type": "String",
+		"description": "The ARN of the role that allows Lambda created by Automation to perform the actions on your behalf",
+		"default": "arn:aws:iam::{{global:ACCOUNT_ID}}:role/AutomationLambdaRole"
+	},
+    "RoleName": {
+      "type": "String",
+	  "description": "(Required) Rolename to create.",
+	  "default": "Role-{{automation:EXECUTION_ID}}"
+    },
+    "GroupName": {
+      "type": "String",
+	  "description": "(Required) Group Name to create.",
+	  "default": "Group-{{automation:EXECUTION_ID}}"
+    },
+    "AmiId": {
+      "type": "String",
+      "description": "(Required) AMI id to use for launching the instance."
+    } ,
+    "InstanceType": {
+      "type": "String",
+      "description": "(Optional) Type of instance to launch. Default is t2.medium.",
+      "default": "t2.medium"
+    }, 
+    "KeyPairName": {
+      "type": "String",
+      "description": "(Required) Key pair to use when creating instance."
+    }    
+   },
+"mainSteps": [
+        {
+            "name": "CreateManagedInstanceProfile",	
+            "action": "aws:executeAutomation",	
+            "maxAttempts": 1,	
+            "timeoutSeconds": 300,	
+            "onFailure": "Abort",	
+            "inputs": {		
+                "DocumentName": "Nana-CreateManagedInstanceProfile",	
+                "DocumentVersion": "1", 	
+                "RuntimeParameters": {			
+                    "RoleName": ["{{RoleName}}"]		
+                    }	
+                }
+        },
+        {
+            "name": "CreateSecurityGroup",	
+            "action": "aws:executeAutomation",	
+            "maxAttempts": 1,	
+            "timeoutSeconds": 300,	
+            "onFailure": "Abort",	
+            "inputs": {		
+                "DocumentName": "Nana-CreateSecurityGroup",	
+                "DocumentVersion": "1", 	
+                "RuntimeParameters": {			
+                    "GroupName": ["{{GroupName}}"],
+                    "Platform": ["Windows"]	
+                    }	
+                }
+        },
+        {
+            "name": "LaunchInstance",
+            "action": "aws:runInstances",
+            "maxAttempts": 3,
+            "timeoutSeconds": 1200,
+            "onFailure": "Abort",
+            "inputs": {
+                "ImageId": "{{AmiId}}",
+                "InstanceType": "{{InstanceType}}",
+                "MinInstanceCount": 1,
+                "MaxInstanceCount": 1,
+                "IamInstanceProfileName": "{{RoleName}}",
+                "SecurityGroups" :["{{GroupName}}"],
+                "KeyName" : "{{KeyPairName}}"
+            }
+        }
+    ]
+}

@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation template for creating Assume Roles for the lambdas 
+Parameters:
+  LambdaAssumeRoleName:
+    Type: String
+    Default: 'NanaLambdaRole'
+    Description: 'Name of the role that needs to be created'
+Resources:
+
+  LambdaAssumeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 
+        Ref: LambdaAssumeRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AWSLambdaExecute
+      - arn:aws:iam::aws:policy/AmazonSSMFullAccess
+      - arn:aws:iam::aws:policy/IAMFullAccess
+      - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+      Path: "/"
+
+Outputs:
+  LambdaRole:
+    Value: !GetAtt LambdaAssumeRole.Arn
+  
