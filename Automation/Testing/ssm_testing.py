@@ -134,20 +134,25 @@ class SSMTester(object):
         self.ssm_client.delete_document(Name=self.doc_name)
 
     @staticmethod
-    def automation_execution_status(ssm_client, execution_id, block_on_waiting=True):
+    def automation_execution_status(ssm_client, execution_id, block_on_waiting=True, status_callback=None):
         """Return execution status, waiting for completion if in progress."""
+
         statuses = PENDING_AUTOMATION_STATUS_WITH_WAITING
         if not block_on_waiting:
             statuses = PENDING_AUTOMATION_STATUS
-        while ssm_client.get_automation_execution(
-                AutomationExecutionId=execution_id
-        )['AutomationExecution']['AutomationExecutionStatus'] in statuses:  # noqa pylint: disable=line-too-long
-            LOGGER.info('Waiting 10 seconds before checking again '
-                        'for automation conclusion')
+
+        while True:
+            current_status = ssm_client.get_automation_execution(
+                AutomationExecutionId=execution_id)['AutomationExecution']['AutomationExecutionStatus']
+
+            if status_callback is not None:
+                status_callback({"status": current_status})
+
+            if current_status not in statuses:
+                return current_status
+
+            LOGGER.info('Waiting 10 seconds before checking again for automation conclusion')
             time.sleep(10)
-        return ssm_client.get_automation_execution(
-            AutomationExecutionId=execution_id
-        )['AutomationExecution']['AutomationExecutionStatus']
 
     @staticmethod
     def ensure_no_instance_in_state(ec2_client, state, instances=None):
@@ -181,3 +186,25 @@ class SSMTester(object):
             return "arn:aws:iam::%s:role/%s" % (account_num, role_name)
         else:
             raise ValueError('Automation role %s does not exist' % role_name)
+
+
+class VPCTester(object):
+    def __init__(self, ec2):
+        self.ec2 = ec2
+
+    def find_default_subnets(self):
+        ec2 = self.ec2
+
+        default_vpc_filters = [{
+            'Name': 'isDefault',
+            'Values': ['true']
+        }]
+
+        available_subnets = []
+
+        for vpc in list(ec2.vpcs.filter(Filters=default_vpc_filters)):
+            for subnet in list(vpc.subnets.all()):
+                available_subnets.append(subnet) if subnet.state == 'available' else False
+
+        return available_subnets
+
