@@ -24,8 +24,8 @@ sys.path.append(
 import ssm_testing  # noqa pylint: disable=import-error,wrong-import-position
 
 CONFIG = ConfigParser.ConfigParser()
-CONFIG.readfp(open(os.path.join(REPO_ROOT, 'testing', 'defaults.cfg')))
-CONFIG.read([os.path.join(REPO_ROOT, 'testing', 'local.cfg')])
+CONFIG.readfp(open(os.path.join(REPO_ROOT, 'Testing', 'defaults.cfg')))
+CONFIG.read([os.path.join(REPO_ROOT, 'Testing', 'local.cfg')])
 
 REGION = CONFIG.get('general', 'region')
 PREFIX = CONFIG.get('general', 'resource_prefix')

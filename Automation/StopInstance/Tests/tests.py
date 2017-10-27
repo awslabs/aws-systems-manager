@@ -18,14 +18,14 @@ REPOROOT = os.path.dirname(DOCDIR)
 sys.path.append(
     os.path.join(
         REPOROOT,
-        'testing'
+        'Testing'
     )
 )
 import ssm_testing  # noqa pylint: disable=import-error,wrong-import-position
 
 CONFIG = ConfigParser.ConfigParser()
-CONFIG.readfp(open(os.path.join(REPOROOT, 'testing', 'defaults.cfg')))
-CONFIG.read([os.path.join(REPOROOT, 'testing', 'local.cfg')])
+CONFIG.readfp(open(os.path.join(REPOROOT, 'Testing', 'defaults.cfg')))
+CONFIG.read([os.path.join(REPOROOT, 'Testing', 'local.cfg')])
 
 REGION = CONFIG.get('general', 'region')
 PREFIX = CONFIG.get('general', 'resource_prefix')

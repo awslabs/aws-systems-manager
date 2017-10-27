@@ -1,4 +1,3 @@
 *.pyc
-Testing/local.cfg
 .idea
 Automation/Testing/local.cfg
