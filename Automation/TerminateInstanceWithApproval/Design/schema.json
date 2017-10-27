@@ -1,0 +1,25 @@
+{
+  "description": "Terminate EC2 instances(s) with approval",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "The ARN of the role that allows Automation to perform the actions on your behalf.",
+      "default": ""
+    },
+    "InstanceIds": {
+      "type": "StringList",
+      "description": "EC2 Instance(s) to terminate"
+    },
+    "Approvers": {
+      "type": "StringList",
+      "description": "IAM user or user arn of approvers for the automation action"
+    },
+    "SNSTopicArn": {
+      "type": "String",
+      "description": "The SNS topic ARN that you are using to get notifications on about EC2 termination notifications. The SNS topic name must start with Automation."
+    }
+  },
+  "mainSteps": []
+}
