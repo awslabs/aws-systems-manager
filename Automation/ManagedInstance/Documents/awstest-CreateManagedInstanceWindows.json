@@ -45,7 +45,7 @@
             "timeoutSeconds": 300,	
             "onFailure": "Abort",	
             "inputs": {		
-                "DocumentName": "Nana-CreateManagedInstanceProfile",	
+                "DocumentName": "awstest-CreateManagedInstanceProfile",	
                 "DocumentVersion": "1", 	
                 "RuntimeParameters": {			
                     "RoleName": ["{{RoleName}}"]		
@@ -59,7 +59,7 @@
             "timeoutSeconds": 300,	
             "onFailure": "Abort",	
             "inputs": {		
-                "DocumentName": "Nana-CreateSecurityGroup",	
+                "DocumentName": "awstest-CreateSecurityGroup",	
                 "DocumentVersion": "1", 	
                 "RuntimeParameters": {			
                     "GroupName": ["{{GroupName}}"],

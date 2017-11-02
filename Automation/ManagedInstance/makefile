@@ -17,8 +17,8 @@ installmodules:
 
 copydocuments:
 	@echo "Copying automation documents"
-	cp ./Documents/aws-CreateManagedInstanceWindows.json ./Output
-	cp ./Documents/aws-CreateManagedInstanceLinux.json ./Output 
+	cp ./Documents/awstest-CreateManagedInstanceWindows.json ./Output
+	cp ./Documents/awstest-CreateManagedInstanceLinux.json ./Output 
 
 clean:
 	@echo "Removing $(TARGET_DIR)"

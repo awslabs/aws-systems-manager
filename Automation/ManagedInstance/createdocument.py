@@ -40,7 +40,7 @@ def create_automation_document(docname, inputdocname, cfname, lambdafilename):
 
 def create_ssm_automation_documents():
     "Create the automation documents based on substitution"
-    create_automation_document("./Output/aws-CreateSecurityGroup.json", "./Documents/aws-CreateSecurityGroup.json", "./CloudFormationTemplates/CloudFormationLambdaSecurityGroup.json", "./Lambdas/lambda_invoker_sg.py")
-    create_automation_document("./Output/aws-CreateManagedInstanceProfile.json", "./Documents/aws-CreateManagedInstanceProfile.json", "./CloudFormationTemplates/CloudFormationLambdaManagedInstanceProfile.json", "./Lambdas/lambda_invoker_mip.py")
+    create_automation_document("./Output/awstest-CreateSecurityGroup.json", "./Documents/awstest-CreateSecurityGroup.json", "./CloudFormationTemplates/CloudFormationLambdaSecurityGroup.json", "./Lambdas/lambda_invoker_sg.py")
+    create_automation_document("./Output/awstest-CreateManagedInstanceProfile.json", "./Documents/awstest-CreateManagedInstanceProfile.json", "./CloudFormationTemplates/CloudFormationLambdaManagedInstanceProfile.json", "./Lambdas/lambda_invoker_mip.py")
 
 create_ssm_automation_documents()

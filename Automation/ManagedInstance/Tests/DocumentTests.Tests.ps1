@@ -4,14 +4,14 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 
 #$VerbosePreference = 'Continue'
 Import-Module -Name AWSPowerShell.NetCore
-$script:ManagedInstanceProfileDoc = 'Nana-CreateManagedInstanceProfile'
-$script:ManagedInstanceProfileDocPath = "$here/../Output/aws-CreateManagedInstanceProfile.json"
-$script:SecurityGroupDoc = 'Nana-CreateSecurityGroup'
-$script:SecurityGroupDocPath = "$here/../Output/aws-CreateSecurityGroup.json"
-$script:ManagedInstanceWindowsDoc= 'Nana-CreateManagedInstanceWindows'
-$script:ManagedInstanceWindowsDocPath = "$here/../Output/aws-CreateManagedInstanceWindows.json"
-$script:ManagedInstanceLinuxDoc = 'Nana-CreateManagedInstanceLinux'
-$script:ManagedInstanceLinuxDocPath = "$here/../Output/aws-CreateManagedInstanceLinux.json"
+$script:ManagedInstanceProfileDoc = 'awstest-CreateManagedInstanceProfile'
+$script:ManagedInstanceProfileDocPath = "$here/../Output/awstest-CreateManagedInstanceProfile.json"
+$script:SecurityGroupDoc = 'awstest-CreateSecurityGroup'
+$script:SecurityGroupDocPath = "$here/../Output/awstest-CreateSecurityGroup.json"
+$script:ManagedInstanceWindowsDoc= 'awstest-CreateManagedInstanceWindows'
+$script:ManagedInstanceWindowsDocPath = "$here/../Output/awstest-CreateManagedInstanceWindows.json"
+$script:ManagedInstanceLinuxDoc = 'awstest-CreateManagedInstanceLinux'
+$script:ManagedInstanceLinuxDocPath = "$here/../Output/awstest-CreateManagedInstanceLinux.json"
 $script:LinuxAmiId = 'ami-6df1e514'
 $script:WindowsAmiId = 'ami-c4ffe3bd'
 Set-DefaultAWSRegion us-west-2
