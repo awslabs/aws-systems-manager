@@ -1,0 +1,34 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Test stack for SSM Automation - StopInstance
+Outputs:
+  Instance0Id:
+    Description: Instance Id
+    Value:
+      Ref: Instance0
+  Instance1Id:
+    Description: Instance Id
+    Value:
+      Ref: Instance1
+Parameters:
+  AMI:
+    Description: AMI ID for instances.
+    Type: String
+  INSTANCETYPE:
+    Description: AMI Instance Type (t2.micro, m1.large, etc.)
+    Type: String
+Resources:
+  Instance0:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId:
+        Ref: AMI
+      InstanceType:
+        Ref: INSTANCETYPE
+  Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId:
+        Ref: AMI
+      InstanceType:
+        Ref: INSTANCETYPE

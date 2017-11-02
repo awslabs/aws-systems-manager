@@ -73,7 +73,7 @@ class TestCase(unittest.TestCase):
             template_filename=os.path.join(DOC_DIR,
                                            'Tests',
                                            'CloudFormationTemplates',
-                                           'TwoInstancesWithSNS.json'),
+                                           'TwoInstancesWithSNS.yml'),
             stack_name=INSTANCE_CFN_STACK_NAME
         )
 

@@ -11,29 +11,29 @@ import unittest
 import boto3
 import demjson
 
-DOCDIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-REPOROOT = os.path.dirname(DOCDIR)
+DOC_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+REPO_ROOT = os.path.dirname(DOC_DIR)
 
 # Import shared testing code
 sys.path.append(
     os.path.join(
-        REPOROOT,
+        REPO_ROOT,
         'Testing'
     )
 )
 import ssm_testing  # noqa pylint: disable=import-error,wrong-import-position
 
 CONFIG = ConfigParser.ConfigParser()
-CONFIG.readfp(open(os.path.join(REPOROOT, 'Testing', 'defaults.cfg')))
-CONFIG.read([os.path.join(REPOROOT, 'Testing', 'local.cfg')])
+CONFIG.readfp(open(os.path.join(REPO_ROOT, 'Testing', 'defaults.cfg')))
+CONFIG.read([os.path.join(REPO_ROOT, 'Testing', 'local.cfg')])
 
 REGION = CONFIG.get('general', 'region')
 PREFIX = CONFIG.get('general', 'resource_prefix')
 AMIID = CONFIG.get('linux', 'ami')
-SERVICEROLENAME = CONFIG.get('general', 'automation_service_role_name')
+SERVICE_ROLE_NAME = CONFIG.get('general', 'automation_service_role_name')
 INSTANCETYPE = CONFIG.get('linux', 'instance_type')
-SSMDOCNAME = PREFIX + 'automation-stopinstance'
-INSTANCECFNSTACKNAME = PREFIX + 'automation-stopinstance'
+SSM_DOC_NAME = PREFIX + 'automation-stopinstance'
+INSTANCE_CFN_STACK_NAME = PREFIX + 'automation-stopinstance'
 
 if CONFIG.get('general', 'log_level') == 'warn':
     logging.basicConfig(level=logging.WARN)
@@ -48,23 +48,12 @@ class TestCase(unittest.TestCase):
     @staticmethod
     def test_jsonlinting():
         """Verify correct json syntax."""
-        for i in glob.glob(os.path.join(DOCDIR, 'Documents', '*.json')):
+        for i in glob.glob(os.path.join(DOC_DIR, 'Documents', '*.json')):
             assert demjson.jsonlint('jsonlint').main([i]) == 0, (
                 'JSON documents are not well formed')
 
-    """"\
-    Test approach:
-        Create CF (CloudFormation) template
-        Run CF template, which will start 2 EC2 instances
-        Ensure CF template has successfully executed and that the EC2 instances are currently running
-        Create the SSM Automation document
-        Ensure Automation document is created successfully
-        Execute automation document (which will stop the specified EC2 instances)
-        Verify EC2 instances are in stopped state
-        Teardown CF and delete automation doc
-    """
     @staticmethod
-    def testdocument():
+    def test_document():
         """Verify correct deployment and use of document."""
         cfn_client = boto3.client('cloudformation', region_name=REGION)
         ec2_client = boto3.client('ec2', region_name=REGION)
@@ -72,26 +61,26 @@ class TestCase(unittest.TestCase):
 
         ssm_doc = ssm_testing.SSMTester(
             ssm_client=ssm_client,
-            doc_filename=os.path.join(DOCDIR,
+            doc_filename=os.path.join(DOC_DIR,
                                       'Documents',
                                       'aws-StopEC2Instance.json'),
-            doc_name=SSMDOCNAME,
+            doc_name=SSM_DOC_NAME,
             doc_type='Automation'
         )
 
         test_cf_stack = ssm_testing.CFNTester(
             cfn_client=cfn_client,
-            template_filename=os.path.join(DOCDIR,
+            template_filename=os.path.join(DOC_DIR,
                                            'Tests',
                                            'CloudFormationTemplates',
-                                           'TwoInstances.json'),
-            stack_name=INSTANCECFNSTACKNAME
+                                           'TwoInstances.yml'),
+            stack_name=INSTANCE_CFN_STACK_NAME
         )
 
         automation_role = ssm_doc.get_automation_role(
             boto3.client('sts', region_name=REGION),
             boto3.client('iam', region_name=REGION),
-            SERVICEROLENAME
+            SERVICE_ROLE_NAME
         )
 
         LOGGER.info('Starting 2 instances for testing')
@@ -125,25 +114,6 @@ class TestCase(unittest.TestCase):
             )
             assert all(d['InstanceState']['Name'] == 'running' for d in describe_res['InstanceStatuses']) is True, (  # noqa pylint: disable=line-too-long
                 'Instances not started')
-
-            LOGGER.info("Executing SSM automation document to stop instances")
-            execution = ssm_doc.execute_automation(
-                params={'InstanceIds': instances_1_2,
-                        'AutomationAssumeRole': [automation_role]})
-
-            LOGGER.info('Verifying automation executions have concluded '
-                        'successfully')
-
-            LOGGER.info('Ensuring instances have stopped')
-            ssm_doc.ensure_no_instance_in_state(
-                ec2_client,
-                'stopping',
-                [x for x in test_cf_stack.stack_outputs.itervalues()])
-
-            assert ssm_doc.automation_execution_status(
-                ssm_client,
-                execution
-            ) == 'Success', 'Instance not started'
 
             LOGGER.info("Executing SSM automation document to stop instances")
             execution = ssm_doc.execute_automation(

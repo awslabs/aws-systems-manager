@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Main test file for SSM document."""
+"""Main test file for Restart Instances with Approval SSM document."""
 
 import ConfigParser
 import glob
@@ -50,10 +50,7 @@ class TestCase(unittest.TestCase):
         """Verify correct json syntax."""
         for i in glob.glob(os.path.join(DOC_DIR, 'Documents', '*.json')):
             assert demjson.jsonlint('jsonlint').main([i]) == 0, (
-                'SSM Autmation JSON documents are not well formed')
-        for i in glob.glob(os.path.join(DOC_DIR, 'Tests', 'CloudFormationTemplates' '*.json')):
-            assert demjson.jsonlint('jsonlint').main([i]) == 0, (
-                'CF Template JSON documents are not well formed')
+                'SSM Automation JSON documents are not well formed')
 
     @staticmethod
     def test_document():

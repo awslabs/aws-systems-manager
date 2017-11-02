@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Main test file for SSM document."""
+"""Main test file for Start Instances SSM document."""
 
 import ConfigParser
 import glob
@@ -11,29 +11,29 @@ import unittest
 import boto3
 import demjson
 
-DOCDIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-REPOROOT = os.path.dirname(DOCDIR)
+DOC_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+REPO_ROOT = os.path.dirname(DOC_DIR)
 
 # Import shared testing code
 sys.path.append(
     os.path.join(
-        REPOROOT,
+        REPO_ROOT,
         'Testing'
     )
 )
 import ssm_testing  # noqa pylint: disable=import-error,wrong-import-position
 
 CONFIG = ConfigParser.ConfigParser()
-CONFIG.readfp(open(os.path.join(REPOROOT, 'Testing', 'defaults.cfg')))
-CONFIG.read([os.path.join(REPOROOT, 'Testing', 'local.cfg')])
+CONFIG.readfp(open(os.path.join(REPO_ROOT, 'Testing', 'defaults.cfg')))
+CONFIG.read([os.path.join(REPO_ROOT, 'Testing', 'local.cfg')])
 
 REGION = CONFIG.get('general', 'region')
 PREFIX = CONFIG.get('general', 'resource_prefix')
 AMIID = CONFIG.get('linux', 'ami')
-SERVICEROLENAME = CONFIG.get('general', 'automation_service_role_name')
+SERVICE_ROLE_NAME = CONFIG.get('general', 'automation_service_role_name')
 INSTANCETYPE = CONFIG.get('linux', 'instance_type')
-SSMDOCNAME = PREFIX + 'automation-startinstance'
-INSTANCECFNSTACKNAME = PREFIX + 'automation-startinstance'
+SSM_DOC_NAME = PREFIX + 'automation-startinstance'
+INSTANCE_CFN_STACK_NAME = PREFIX + 'automation-startinstance'
 
 if CONFIG.get('general', 'log_level') == 'warn':
     logging.basicConfig(level=logging.WARN)
@@ -48,12 +48,12 @@ class TestCase(unittest.TestCase):
     @staticmethod
     def test_jsonlinting():
         """Verify correct json syntax."""
-        for i in glob.glob(os.path.join(DOCDIR, 'Documents', '*.json')):
+        for i in glob.glob(os.path.join(DOC_DIR, 'Documents', '*.json')):
             assert demjson.jsonlint('jsonlint').main([i]) == 0, (
                 'JSON documents are not well formed')
 
     @staticmethod
-    def testdocument():
+    def test_document():
         """Verify correct deployment and use of document."""
         cfn_client = boto3.client('cloudformation', region_name=REGION)
         ec2_client = boto3.client('ec2', region_name=REGION)
@@ -61,26 +61,26 @@ class TestCase(unittest.TestCase):
 
         ssm_doc = ssm_testing.SSMTester(
             ssm_client=ssm_client,
-            doc_filename=os.path.join(DOCDIR,
+            doc_filename=os.path.join(DOC_DIR,
                                       'Documents',
                                       'aws-StartEC2Instance.json'),
-            doc_name=SSMDOCNAME,
+            doc_name=SSM_DOC_NAME,
             doc_type='Automation'
         )
 
         test_cf_stack = ssm_testing.CFNTester(
             cfn_client=cfn_client,
-            template_filename=os.path.join(DOCDIR,
+            template_filename=os.path.join(DOC_DIR,
                                            'Tests',
                                            'CloudFormationTemplates',
-                                           'ThreeInstances.json'),
-            stack_name=INSTANCECFNSTACKNAME
+                                           'ThreeInstances.yml'),
+            stack_name=INSTANCE_CFN_STACK_NAME
         )
 
         automation_role = ssm_doc.get_automation_role(
             boto3.client('sts', region_name=REGION),
             boto3.client('iam', region_name=REGION),
-            SERVICEROLENAME
+            SERVICE_ROLE_NAME
         )
 
         LOGGER.info('Starting 3 instances for testing')
