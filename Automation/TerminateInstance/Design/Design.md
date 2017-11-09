@@ -12,7 +12,7 @@ Document Steps:
   1. aws:changeInstanceState
     * Inputs:
       * DesiredState: terminated
-      * InstanceIds: {{InstanceIds}}
+      * InstanceIds: {{InstanceId}}
 
 ## Test script
 
