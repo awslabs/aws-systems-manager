@@ -3,14 +3,22 @@
   "schemaVersion": "0.3",
   "assumeRole": "{{ AutomationAssumeRole }}",
   "parameters": {
+    "InstanceId": {
+      "type": "StringList",
+      "description": "(Required) EC2 Instance(s) to restart"
+    },
+    "Approvers": {
+      "type": "StringList",
+      "description": "(Required) IAM user or user arn of approvers for the automation action"
+    },
+    "SNSTopicArn": {
+      "type": "String",
+      "description": "(Required) The SNS topic ARN used to send pending approval notification for instance restart. The SNS topic name must start with Automation."
+    },
     "AutomationAssumeRole": {
       "type": "String",
-      "description": "The ARN of the role that allows Automation to perform the actions on your behalf.",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf.",
       "default": ""
-    },
-    "InstanceIds": {
-      "type": "StringList",
-      "description": "EC2 Instance(s) to restart"
     }
   },
   "mainSteps": []
