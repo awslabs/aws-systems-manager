@@ -108,7 +108,7 @@ class TestCase(unittest.TestCase):
             instances_1_2 = [test_cf_stack.stack_outputs['Instance0Id'],
                              test_cf_stack.stack_outputs['Instance1Id']]
             execution = ssm_doc.execute_automation(
-                params={'InstanceIds': instances_1_2,
+                params={'InstanceId': instances_1_2,
                         'AutomationAssumeRole': [automation_role]})
 
             LOGGER.info('Verifying automation executions have concluded successfully')

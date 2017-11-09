@@ -13,11 +13,11 @@ Document Steps:
   1. aws:changeInstanceState
     * Inputs:
       * DesiredState: stopped
-      * InstanceIds: {{InstanceIds}}
+      * InstanceIds: {{InstanceId}}
   2. aws:changeInstanceState
     * Inputs:
       * DesiredState: running
-      * InstanceIds: {{InstanceIds}}
+      * InstanceIds: {{InstanceId}}
 
 ## Test script
 

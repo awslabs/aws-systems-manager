@@ -3,14 +3,14 @@
   "schemaVersion": "0.3",
   "assumeRole": "{{ AutomationAssumeRole }}",
   "parameters": {
+    "InstanceId": {
+      "type": "StringList",
+      "description": "(Required) EC2 Instance(s) to restart"
+    },
     "AutomationAssumeRole": {
       "type": "String",
-      "description": "The ARN of the role that allows Automation to perform the actions on your behalf.",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf.",
       "default": ""
-    },
-    "InstanceIds": {
-      "type": "StringList",
-      "description": "EC2 Instance(s) to restart"
     }
   },
   "mainSteps": [
@@ -18,7 +18,7 @@
       "name": "stopInstances",
       "action": "aws:changeInstanceState",
       "inputs": {
-        "InstanceIds": "{{ InstanceIds }}",
+        "InstanceIds": "{{ InstanceId }}",
         "DesiredState": "stopped"
       }
     },
@@ -26,7 +26,7 @@
       "name": "startInstances",
       "action": "aws:changeInstanceState",
       "inputs": {
-        "InstanceIds": "{{ InstanceIds }}",
+        "InstanceIds": "{{ InstanceId }}",
         "DesiredState": "running"
       }
     }
