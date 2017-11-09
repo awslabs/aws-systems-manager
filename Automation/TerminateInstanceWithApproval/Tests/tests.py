@@ -122,7 +122,7 @@ class TestCase(unittest.TestCase):
             LOGGER.info("SNS Topic ARN for approval: " + sns_topic_arn)
 
             execution = ssm_doc.execute_automation(
-                params={'InstanceIds': instances_1_2,
+                params={'InstanceId': instances_1_2,
                         'AutomationAssumeRole': [automation_role],
                         'Approvers': [user_arn],
                         'SNSTopicArn': [sns_topic_arn]})
