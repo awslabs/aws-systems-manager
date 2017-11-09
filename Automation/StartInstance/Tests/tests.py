@@ -116,7 +116,7 @@ class TestCase(unittest.TestCase):
             LOGGER.info('Running automation to start single instance')
             instance_0 = test_cf_stack.stack_outputs['Instance0Id']
             execution_0 = ssm_doc.execute_automation(
-                params={'InstanceIds': [instance_0]}
+                params={'InstanceId': [instance_0]}
             )
 
             LOGGER.info('Running automation to start multiple instances '
@@ -124,7 +124,7 @@ class TestCase(unittest.TestCase):
             instances_1_2 = [test_cf_stack.stack_outputs['Instance1Id'],
                              test_cf_stack.stack_outputs['Instance2Id']]
             execution_1 = ssm_doc.execute_automation(
-                params={'InstanceIds': instances_1_2,
+                params={'InstanceId': instances_1_2,
                         'AutomationAssumeRole': [automation_role]})
 
             LOGGER.info('Verifying automation executions have concluded '
