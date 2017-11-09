@@ -124,7 +124,7 @@ class TestCase(unittest.TestCase):
             LOGGER.info('Running automation to start multiple instances '
                         '(using defined role)')
 
-            ssm_doc_params = {'InstanceIds': ec2_instance_ids,
+            ssm_doc_params = {'InstanceId': ec2_instance_ids,
                               'AutomationAssumeRole': [automation_role],
                               'Approvers': [user_arn],
                               'SNSTopicArn': [sns_topic_arn]}

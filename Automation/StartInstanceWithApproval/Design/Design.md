@@ -14,7 +14,7 @@ Document Steps:
   2. aws:changeInstanceState
     * Inputs:
       * DesiredState: running
-      * InstanceIds: {{InstanceIds}}
+      * InstanceIds: {{InstanceId}}
 
 ## Test script
 
