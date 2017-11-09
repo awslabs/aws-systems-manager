@@ -117,7 +117,7 @@ class TestCase(unittest.TestCase):
 
             LOGGER.info("Executing SSM automation document to stop instances")
             execution = ssm_doc.execute_automation(
-                params={'InstanceIds': instances_1_2,
+                params={'InstanceId': instances_1_2,
                         'AutomationAssumeRole': [automation_role]})
 
             LOGGER.info('Verifying automation executions have concluded '
