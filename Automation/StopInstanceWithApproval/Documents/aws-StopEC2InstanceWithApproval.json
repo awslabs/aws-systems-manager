@@ -3,22 +3,22 @@
   "schemaVersion": "0.3",
   "assumeRole": "{{ AutomationAssumeRole }}",
   "parameters": {
-    "AutomationAssumeRole": {
-      "type": "String",
-      "description": "The ARN of the role that allows Automation to perform the actions on your behalf.",
-      "default": ""
-    },
-    "InstanceIds": {
+    "InstanceId": {
       "type": "StringList",
-      "description": "EC2 Instance(s) to stop"
+      "description": "(Required) EC2 Instance(s) to stop"
     },
     "Approvers": {
       "type": "StringList",
-      "description": "IAM user or user arn of approvers for the automation action"
+      "description": "(Required) IAM user or user arn of approvers for the automation action"
     },
     "SNSTopicArn": {
       "type": "String",
-      "description": "The SNS topic ARN that you are using to get notifications on about EC2 retirement notifications. The SNS topic name must start with Automation."
+      "description": "(Required) The SNS topic ARN used to send pending approval notification for stop instance action. The SNS topic name must start with Automation."
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf.",
+      "default": ""
     }
   },
   "mainSteps": [
@@ -37,7 +37,7 @@
       "name": "stopInstances",
       "action": "aws:changeInstanceState",
       "inputs": {
-        "InstanceIds": "{{ InstanceIds }}",
+        "InstanceIds": "{{ InstanceId }}",
         "DesiredState": "stopped"
       }
     }
