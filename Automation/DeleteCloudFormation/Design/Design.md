@@ -29,7 +29,7 @@ Refer to schema.json
 Document Steps:
   1. aws:deleteStack
   * Inputs:
-    * StackName: {{StackName}} - Stack name or unique ID
+    * StackName: {{StackNameOrId}} - Stack name or unique ID
 
 ## Test script
 

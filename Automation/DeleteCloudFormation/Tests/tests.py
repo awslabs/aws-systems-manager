@@ -100,7 +100,7 @@ class TestCase(unittest.TestCase):
                                                            'created '
                                                            'successfully')
 
-            execution = ssm_doc.execute_automation(params={'StackName': [INSTANCE_CFN_STACK_NAME],
+            execution = ssm_doc.execute_automation(params={'StackNameOrId': [INSTANCE_CFN_STACK_NAME],
                                                            'AutomationAssumeRole': [automation_role]})
 
             LOGGER.info('Verifying automation executions have concluded successfully')
