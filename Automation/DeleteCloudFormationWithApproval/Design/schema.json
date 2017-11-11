@@ -1,0 +1,25 @@
+{
+  "description": "Delete CloudFormation Stack with approval",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "StackNameOrId": {
+      "type": "String",
+      "description": "(Required) Name or Unique ID of the CloudFormation stack to be deleted"
+    },
+    "Approvers": {
+      "type": "StringList",
+      "description": "(Required) IAM user or user arn of approvers for the automation action"
+    },
+    "SNSTopicArn": {
+      "type": "String",
+      "description": "(Required) The SNS topic ARN used to send pending approval notification for delete CloudFormation Stack. The SNS topic name must start with Automation."
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf.",
+      "default": ""
+    }
+  },
+  "mainSteps": []
+}
