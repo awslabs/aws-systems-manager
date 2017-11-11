@@ -1,0 +1,27 @@
+{
+  "description": "Delete CloudFormation Stack",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "The ARN of the role that allows Automation to perform the actions on your behalf.",
+      "default": ""
+    },
+    "StackName": {
+      "type": "String",
+      "description": "Name or Unique ID of the CloudFormation stack to be deleted"
+    }
+  },
+  "mainSteps": [
+    {
+      "name": "deleteCloudFormationStack",
+      "action":"aws:deleteStack",
+      "maxAttempts":1,
+      "onFailure":"Abort",
+      "inputs":{
+        "StackName":"{{StackName}}"
+      }
+    }
+  ]
+}

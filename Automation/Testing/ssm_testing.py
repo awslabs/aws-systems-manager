@@ -28,7 +28,7 @@ class CFNTester(object):
 
         self.delete_stack()
         LOGGER.info('Creating stack %s', self.stack_name)
-        self.cfn_client.create_stack(
+        stack = self.cfn_client.create_stack(
             StackName=self.stack_name,
             TemplateBody=self.template_body,
             Parameters=params,
@@ -43,7 +43,7 @@ class CFNTester(object):
                     StackName=self.stack_name
             )['Stacks'][0]['Outputs']:
                 self.stack_outputs[i['OutputKey']] = i['OutputValue']
-            return True
+            return stack
         else:
             raise ValueError('CFN stack did not create successfully')
 
