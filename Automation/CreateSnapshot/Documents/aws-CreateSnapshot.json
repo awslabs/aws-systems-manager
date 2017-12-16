@@ -1,0 +1,64 @@
+{
+  "description": "Create Snapshot",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "VolumeId": {
+      "type": "String",
+      "description": "(Required) The ID of the volume."
+    },
+    "Description": {
+      "type": "String",
+      "description": "(Optional) A description for the snapshot",
+      "default": ""
+    },
+    "LambdaAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role assumed by lambda",
+      "default": ""
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf. ",
+      "default": ""
+    }
+  },
+  "mainSteps": [
+    {
+      "name": "createDocumentStack",
+      "action": "aws:createStack",
+      "inputs": {
+        "Capabilities": [
+          "CAPABILITY_IAM"
+        ],
+        "StackName": "CreateSnapshotStack{{automation:EXECUTION_ID}}",
+        "Parameters": [
+          {
+            "ParameterKey": "LambdaRoleArn",
+            "ParameterValue": "{{LambdaAssumeRole}}"
+          },
+          {
+            "ParameterKey": "LambdaName",
+            "ParameterValue": "CreateSnapshotLambda-{{automation:EXECUTION_ID}}"
+          }
+        ],
+        "TemplateBody": "..."
+      }
+    },
+    {
+      "name": "createSnapshot",
+      "action": "aws:invokeLambdaFunction",
+      "inputs": {
+        "FunctionName": "CreateSnapshotLambda-{{automation:EXECUTION_ID}}",
+        "Payload":  "{\"VolumeId\": \"{{VolumeId}}\", \"Description\": \"{{Description}}\"}"
+      }
+    },
+    {
+      "name": "deleteCloudFormationTemplate",
+      "action": "aws:deleteStack",
+      "inputs": {
+        "StackName": "CreateSnapshotStack{{automation:EXECUTION_ID}}"
+      }
+    }
+  ]
+}
