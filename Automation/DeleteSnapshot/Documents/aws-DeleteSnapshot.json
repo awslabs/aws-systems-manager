@@ -1,0 +1,59 @@
+{
+  "description": "Delete Snapshot",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "SnapshotId": {
+      "type": "String",
+      "description": "(Required) The ID of the EBS snapshot."
+    },
+    "LambdaAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role assumed by lambda",
+      "default": ""
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf. ",
+      "default": ""
+    }
+  },
+  "mainSteps": [
+    {
+      "name": "createDocumentStack",
+      "action": "aws:createStack",
+      "inputs": {
+        "Capabilities": [
+          "CAPABILITY_IAM"
+        ],
+        "StackName": "DeleteSnapshotStack{{automation:EXECUTION_ID}}",
+        "Parameters": [
+          {
+            "ParameterKey": "LambdaRoleArn",
+            "ParameterValue": "{{LambdaAssumeRole}}"
+          },
+          {
+            "ParameterKey": "LambdaName",
+            "ParameterValue": "DeleteSnapshotLambda-{{automation:EXECUTION_ID}}"
+          }
+        ],
+        "TemplateBody": "..."
+      }
+    },
+    {
+      "name": "deleteSnapshot",
+      "action": "aws:invokeLambdaFunction",
+      "inputs": {
+        "FunctionName": "DeleteSnapshotLambda-{{automation:EXECUTION_ID}}",
+        "Payload":  "{\"SnapshotId\": \"{{SnapshotId}}\"}"
+      }
+    },
+    {
+      "name": "deleteCloudFormationTemplate",
+      "action": "aws:deleteStack",
+      "inputs": {
+        "StackName": "DeleteSnapshotStack{{automation:EXECUTION_ID}}"
+      }
+    }
+  ]
+}
