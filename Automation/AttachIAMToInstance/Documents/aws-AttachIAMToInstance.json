@@ -1,0 +1,68 @@
+{
+  "description": "Attach IAM to Instance",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "InstanceId": {
+      "type": "String",
+      "description": "(Required) The ID of the instance."
+    },
+    "RoleName": {
+      "type": "String",
+      "description": "(Required) Role Name to add"
+    },
+    "LambdaAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role assumed by lambda",
+      "default": ""
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf. ",
+      "default": ""
+    }
+  },
+  "mainSteps": [
+    {
+      "name": "createDocumentStack",
+      "action": "aws:createStack",
+      "inputs": {
+        "Capabilities": [
+          "CAPABILITY_IAM"
+        ],
+        "StackName": "AttachIAMToInstanceStack{{automation:EXECUTION_ID}}",
+        "Parameters": [
+          {
+            "ParameterKey": "LambdaRoleArn",
+            "ParameterValue": "{{LambdaAssumeRole}}"
+          },
+          {
+            "ParameterKey": "LambdaName",
+            "ParameterValue": "AttachIAMToInstanceLambda-{{automation:EXECUTION_ID}}"
+          }
+        ],
+        "TemplateBody": "..."
+      }
+    },
+    {
+      "name": "attachIAMToInstance",
+      "action": "aws:invokeLambdaFunction",
+      "inputs": {
+        "FunctionName": "AttachIAMToInstanceLambda-{{automation:EXECUTION_ID}}",
+        "Payload":  "{\"InstanceId\": \"{{InstanceId}}\", \"RoleName\": \"{{RoleName}}\"}",
+        "LogType": "Tail"
+      }
+    },
+    {
+      "name": "deleteCloudFormationTemplate",
+      "action": "aws:deleteStack",
+      "inputs": {
+        "StackName": "AttachIAMToInstanceStack{{automation:EXECUTION_ID}}"
+      }
+    }
+  ],
+  "outputs":[
+    "attachIAMToInstance.LogResult",
+    "attachIAMToInstance.Payload"
+  ]
+}

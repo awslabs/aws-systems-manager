@@ -1,0 +1,30 @@
+{
+  "description": "Attach IAM to Instance",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "InstanceId": {
+      "type": "String",
+      "description": "(Required) The ID of the instance."
+    },
+    "RoleName": {
+      "type": "String",
+      "description": "(Required) Role Name to add"
+    },
+    "LambdaAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role assumed by lambda",
+      "default": ""
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf. ",
+      "default": ""
+    }
+  },
+  "mainSteps": [],
+  "outputs":[
+    "attachIAMToInstance.LogResult",
+    "attachIAMToInstance.Payload"
+  ]
+}
