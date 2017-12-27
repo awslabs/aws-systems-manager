@@ -1,0 +1,24 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to attach a EBS volume to an EC2 Instance
+Parameters:
+  Device:
+    Description: >
+      The device name (for example, /dev/sdh or xvdh )
+    Type: String
+  InstanceId:
+    Description: >
+      The ID of the instance
+    Type: String
+  VolumeId:
+    Description: >
+      The ID of the EBS volume. The volume and instance must be within the same Availability Zone
+    Type: String
+Resources:
+  TestResource:
+    Type: AWS::EC2::VolumeAttachment
+    DeletionPolicy: Retain
+    Properties:
+      Device: !Ref Device
+      InstanceId: !Ref InstanceId
+      VolumeId: !Ref VolumeId
