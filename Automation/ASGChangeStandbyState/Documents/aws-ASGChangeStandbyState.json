@@ -1,6 +1,6 @@
 {
   "schemaVersion": "0.3",
-  "description": "Systems Manager Automation - Change the Standby state of an EC2 instance in an autoscaling group",
+  "description":  "Change the Standby state of an EC2 instance in an autoscaling group",
   "assumeRole": "{{AutomationAssumeRole}}",
   "parameters": {
     "InstanceId": {
