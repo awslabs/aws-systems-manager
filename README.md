@@ -16,10 +16,11 @@ The repo has top level folders that include:
 * Inventory: Contains custom gatherers that you can use with the Inventory service
 * Examples: Any artifact that does not fit into the other categories will be a separate folder for that artifact
 
-## Contributing
-Contributions and feedback are welcome! Proposals and Pull Requests will be considered and responded to. Please see the CONTRIBUTING.md file for more information.
+## Developing and Contributing
+Contributions are welcome! The goal of the project is for developers to provide artifacts, documentation and examples of product usage to share with the community. 
 
-## Feedback
-Thank you for helping us to improve SSM. Please send your questions or comments to: ec2-ssm-feedback@amazon.com
+Please see the CONTRIBUTING.md file for more information.
 
-## License
+## Legal and Licensing
+This repo is licensed under the MIT no attribution license.
+
