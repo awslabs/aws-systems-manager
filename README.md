@@ -1,5 +1,5 @@
 # AWS Systems Manager
-Welcome to the Systems Manager community! Systems Manager allows you to automate common administrative tasks across resources on AWS and on-premises. Using Systems Manager you can group resources by applications, and automate operational tasks on those resources such as remote management, collecting inventory, patching and configuration management. 
+Welcome to the Systems Manager community! Systems Manager allows you to automate common administrative tasks across resources on AWS and on-premises. Using Systems Manager, you can group resources by application and automate operational tasks on those resources. For example, you can remotely manage, collect inventory, patch, and configure your grouped resources. 
 
 ## New to Systems Manager?
 Here are some resources for you to get started with Systems Manager:
@@ -17,7 +17,7 @@ The repo has top level folders that include:
 * Examples: Any artifact that does not fit into the other categories will be a separate folder for that artifact
 
 ## Developing and Contributing
-Contributions are welcome! The goal of the project is for developers to provide artifacts, documentation and examples of product usage to share with the community. 
+Contributions are welcome! The goal of the project is for developers to provide artifacts, documentation, and examples of product usage to share with the community. 
 
 Please see the [CONTRIBUTING.md](https://github.com/awslabs/amazon-ssm/blob/master/CONTRIBUTING.md) file for more information.
 
