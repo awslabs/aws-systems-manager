@@ -9,7 +9,7 @@ Examples of contributions include (but not limited to):
 * Cloud Formation Templates
 * Use cases and Documentation that extends SSM’s formal public documents by providing walkthroughs/cookbooks or documents use-cases of SSM
 
-If you have any problems, please consult GitHub issues for this repo. If you do not find an existing problem, please file a new issue.
+If you have any problems, please consult GitHub [issues](https://github.com/awslabs/amazon-ssm/issues) for this repo. If you do not find an existing problem, please file a new issue.
 
 ## Making the pull request
-Pull requests should be opened against the main branch. We recommend that you provide a readme or description with any script or executable you contribute so that it’s easy to understand and get started.
+Pull requests should be opened against the `master` branch. We recommend that you provide a readme or description with any script or executable you contribute so that it’s easy to understand and get started.
