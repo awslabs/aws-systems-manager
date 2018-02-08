@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Test stack for SSM Automation - StartInstance
+Description: Automation stack for ASG Change Standby state documents
 Parameters:
   LambdaRoleArn:
     Description: >
