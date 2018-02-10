@@ -22,4 +22,4 @@ Contributions are welcome! The goal of the project is for developers to provide 
 Please see the [CONTRIBUTING.md](https://github.com/awslabs/amazon-ssm/blob/master/CONTRIBUTING.md) file for more information.
 
 ## Legal and Licensing
-This repo is licensed under the [MIT license](https://github.com/awslabs/amazon-ssm/blob/master/LICENSE).
+This repo is licensed under the [MIT no attribution license](https://github.com/awslabs/amazon-ssm/blob/master/LICENSE).
