@@ -13,3 +13,6 @@ If you have any problems, please consult GitHub [issues](https://github.com/awsl
 
 ## Making the pull request
 Pull requests should be opened against the `master` branch. We recommend that you provide a readme or description with any script or executable you contribute so that it’s easy to understand and get started.
+
+## Licensing
+All content must be clearly licensed to [MIT no attribution](https://github.com/awslabs/amazon-ssm/blob/master/LICENSE). Please 
