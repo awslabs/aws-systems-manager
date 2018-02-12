@@ -4,7 +4,7 @@ Contributions to the repo should be made via GitHub pull requests and discussed 
 ## What can you contribute?
 Examples of contributions include (but not limited to):
 
-* SSM Documents, licensed under the MIT No Attribution License, that (a) combine existing SSM features,  or (b) run scripts or executables that demonstrate the management capabilities of the Systems Manager platform
+* Systems Manager Documents, licensed under the MIT No Attribution License, that (a) combine existing SSM features,  or (b) run scripts or executables that demonstrate the management capabilities of the Systems Manager platform
 * Scripts and executables (a) that can be used in an SSM document, (b) provided to Amazon in source code form (rather than binary), (c) and licensed under the MIT No Attribution License
 * Cloud Formation Templates
 * Use cases and Documentation that extends SSM’s formal public documents by providing walkthroughs/cookbooks or documents use-cases of SSM
