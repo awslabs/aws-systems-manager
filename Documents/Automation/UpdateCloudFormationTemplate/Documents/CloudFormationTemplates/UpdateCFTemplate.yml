@@ -1,0 +1,24 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  LambdaRoleArn:
+    Description: >
+      The ARN of the role that allows Lambda created by Automation to perform the action on your behalf
+    Type: String
+    Default: ""
+  LambdaName:
+    Description: >
+      The lambda function name
+    Type: String
+Resources:
+  UpdateCFLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "{}"
+      FunctionName: !Ref LambdaName
+      Role: !Ref LambdaRoleArn
+      Timeout: 60
+      Handler: "index.handler"
+      Runtime: python2.7
+      MemorySize: 128

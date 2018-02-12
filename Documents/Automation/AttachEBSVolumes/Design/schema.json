@@ -1,0 +1,25 @@
+{
+  "description": "Attach EBS Volume",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "Device": {
+      "type": "String",
+      "description": "(Required) The device name (for example, /dev/sdh or xvdh )"
+    },
+    "InstanceId": {
+      "type": "String",
+      "description": "(Required) The ID of the instance"
+    },
+    "VolumeId": {
+      "type": "String",
+      "description": "(Required) The ID of the EBS volume. The volume and instance must be within the same Availability Zone"
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf. ",
+      "default": ""
+    }
+  },
+  "mainSteps": []
+}

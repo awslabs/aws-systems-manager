@@ -1,0 +1,26 @@
+{
+  "description": "Resize Instance",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "InstanceId": {
+      "type": "String",
+      "description": "(Required) The ID of the instance."
+    },
+    "InstanceType": {
+      "type": "String",
+      "description": "(Required) The instance type."
+    },
+    "LambdaAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role assumed by lambda",
+      "default": ""
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf. ",
+      "default": ""
+    }
+  },
+  "mainSteps": []
+}

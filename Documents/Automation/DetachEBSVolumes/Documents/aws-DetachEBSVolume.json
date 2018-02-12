@@ -1,0 +1,63 @@
+{
+  "description": "Detach EBS Volume",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "VolumeId": {
+      "type": "String",
+      "description": "(Required) The ID of the EBS volume. The volume and instance must be within the same Availability Zone"
+    },
+    "LambdaAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role assumed by lambda",
+      "default": ""
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf. ",
+      "default": ""
+    }
+  },
+  "mainSteps": [
+    {
+      "name": "createDocumentStack",
+      "action": "aws:createStack",
+      "inputs": {
+        "Capabilities": [
+          "CAPABILITY_IAM"
+        ],
+        "StackName": "DetachEBSVolumeStack{{automation:EXECUTION_ID}}",
+        "Parameters": [
+          {
+            "ParameterKey": "LambdaRoleArn",
+            "ParameterValue": "{{LambdaAssumeRole}}"
+          },
+          {
+            "ParameterKey": "LambdaName",
+            "ParameterValue": "DetachVolumeLambda-{{automation:EXECUTION_ID}}"
+          }
+        ],
+        "TemplateBody": "..."
+      }
+    },
+    {
+      "name": "detachVolume",
+      "action": "aws:invokeLambdaFunction",
+      "inputs": {
+        "FunctionName": "DetachVolumeLambda-{{automation:EXECUTION_ID}}",
+        "Payload":  "{\"VolumeId\": \"{{VolumeId}}\"}",
+        "LogType": "Tail"
+      }
+    },
+    {
+      "name": "deleteCloudFormationTemplate",
+      "action": "aws:deleteStack",
+      "inputs": {
+        "StackName": "DetachEBSVolumeStack{{automation:EXECUTION_ID}}"
+      }
+    }
+  ],
+  "outputs":[
+    "detachVolume.LogResult"
+  ]
+}

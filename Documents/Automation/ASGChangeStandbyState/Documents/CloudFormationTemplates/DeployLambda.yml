@@ -1,0 +1,81 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Automation stack for ASG Change Standby state documents
+Parameters:
+  LambdaRoleArn:
+    Description: >
+        Assume role used by the lambda function. If not specified this template will create a temporary role to be used
+        by the lambda created in this template.
+    Type: String
+    Default: ""
+  FunctionName:
+    Description: What to name the deployed lambda function
+    Type: String
+  Verbose:
+    Description: >
+      Verbose setting
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+Conditions:
+    LambdaAssumeRoleNotSpecified:
+      !Or
+        - !Equals [!Ref LambdaRoleArn, '']
+        - !Equals [!Ref LambdaRoleArn, 'undefined']
+    IsVerbose:
+        !Equals [!Ref Verbose, "true"]
+    IsVerboseAndLambdaRoleNotSpecified:
+      !And
+        - Condition: LambdaAssumeRoleNotSpecified
+        - Condition: IsVerbose
+Resources:
+  ChangeASGStateLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: "python2.7"
+      Handler: "index.handler"
+      Role: !Ref LambdaRole
+      FunctionName: !Ref FunctionName
+      Role: !If ["LambdaAssumeRoleNotSpecified", !GetAtt LambdaRole.Arn, !Ref LambdaRoleArn]
+      Code:
+        ZipFile: "{}"
+  # Assume role used by the lambda function (only created if not passed in)
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Condition: LambdaAssumeRoleNotSpecified
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: ["sts:AssumeRole"]
+            Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: asg-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              Action:
+                - "autoscaling:EnterStandby"
+                - "autoscaling:ExitStandby"
+                - "autoscaling:DescribeAutoScalingInstances"
+              Effect: Allow
+              Resource: "*"
+      Path: "/"
+  LambdaLogPolicy:
+    Type: AWS::IAM::Policy
+    Condition: IsVerboseAndLambdaRoleNotSpecified
+    Properties:
+      PolicyName: "lambda-log-access"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Action:
+            - log:CreateLogStream
+            - log:PutLogEvents
+            - log:CreateLogGroup
+          Effect: Allow
+          Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+      Roles: [!Ref LambdaRole]

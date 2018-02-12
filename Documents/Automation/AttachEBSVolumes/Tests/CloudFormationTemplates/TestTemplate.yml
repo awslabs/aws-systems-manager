@@ -1,0 +1,59 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Test stack for Attach EBS Volumes
+Outputs:
+  InstanceId:
+    Description: Instance Id
+    Value:
+      Ref: Instance0
+  VolumeId:
+    Description: Volume Id
+    Value:
+      Ref: Volume0
+  AutomationAssumeRoleName:
+    Description: Automation Assume Role Name
+    Value: !Ref AutomationAssumeRole
+  AutomationAssumeRoleARN:
+    Description: Automation Assume Role ARN
+    Value: !GetAtt AutomationAssumeRole.Arn
+Parameters:
+  AMI:
+    Description: AMI ID for instances.
+    Type: String
+  INSTANCETYPE:
+    Description: AMI Instance Type (t2.micro, m1.large, etc.)
+    Type: String
+  UserARN:
+    Description: user ARN
+    Type: String
+Resources:
+  AutomationAssumeRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+                - "ssm.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+          - Effect: "Allow"
+            Principal:
+              AWS: !Ref UserARN
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
+  Instance0:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref INSTANCETYPE
+  Volume0:
+    Type: AWS::EC2::Volume
+    Properties:
+      Size: 1
+      AvailabilityZone: !GetAtt Instance0.AvailabilityZone

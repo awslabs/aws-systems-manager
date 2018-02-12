@@ -1,0 +1,45 @@
+{
+  "description": "Start EC2 instances(s) with approval",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "InstanceId": {
+      "type": "StringList",
+      "description": "(Required) EC2 Instance(s) to start"
+    },
+    "Approvers": {
+      "type": "StringList",
+      "description": "(Required) IAM user or user arn of approvers for the automation action"
+    },
+    "SNSTopicArn": {
+      "type": "String",
+      "description": "(Required) The SNS topic ARN used to send pending approval notification for start instance action. The SNS topic name must start with Automation."
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf.",
+      "default": ""
+    }
+  },
+  "mainSteps": [
+    {
+      "name": "approve",
+      "action": "aws:approve",
+      "onFailure": "Abort",
+      "inputs": {
+        "NotificationArn": "{{ SNSTopicArn }}",
+        "Message": "Approval required to start EC2 instances",
+        "MinRequiredApprovals": 1,
+        "Approvers": "{{ Approvers }}"
+      }
+    },
+    {
+      "name": "startInstances",
+      "action": "aws:changeInstanceState",
+      "inputs": {
+        "InstanceIds": "{{ InstanceId }}",
+        "DesiredState": "running"
+      }
+    }
+  ]
+}

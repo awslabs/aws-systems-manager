@@ -1,0 +1,30 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Test template for UpdateCloudFormationTemplate
+Resources:
+  TestRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: ["sts:AssumeRole"]
+            Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: "test-policy-name"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              Action:
+                - log:CreateLogStream
+                - log:PutLogEvents
+                - log:CreateLogGroup
+              Effect: Allow
+              Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+Outputs:
+  RoleName:
+    Description: Role name
+    Value: !Ref TestRole

@@ -1,0 +1,71 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Conditions:
+  SSHKeySpecified:
+    !And
+      - !Not [!Equals [!Ref KeyName, '']]
+      - !Not [!Equals [!Ref KeyName, 'undefined']]
+Description: Test stack for SSM Automation - ASG
+Outputs:
+  ASGName:
+    Description: Name of autoscaling group
+    Value: !Ref ASG
+Parameters:
+  AMI:
+    Description: AMI ID for instances.
+    Type: String
+  AssociatePublicIpAddress:
+    Default: 'false'
+    Description: Should a public IP be automatically associated with launched instances?
+    Type: String
+  InstanceType:
+    Default: m3.medium
+    Description: Type of instances to launch
+    Type: String
+  KeyName:
+    Default: ''
+    Description: Name of an existing EC2-VPC KeyPair
+    Type: String
+  Subnets:
+    Description: Subnets in which the servers will be deployed
+    Type: List<AWS::EC2::Subnet::Id>
+Resources:
+  InstanceProfile:
+    Properties:
+      Path: "/"
+      Roles: [!Ref ServerRole]
+    Type: AWS::IAM::InstanceProfile
+  ASG:
+    Properties:
+      DesiredCapacity: 2
+      LaunchConfigurationName: !Ref LaunchConfig
+      MaxSize: 2
+      MinSize: 1
+      VPCZoneIdentifier: !Ref Subnets
+    Type: AWS::AutoScaling::AutoScalingGroup
+  LaunchConfig:
+    Properties:
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      KeyName: !If [SSHKeySpecified, !Ref KeyName, !Ref "AWS::NoValue"]
+    Type: AWS::AutoScaling::LaunchConfiguration
+  ServerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+                - application-autoscaling.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/AutoScalingFullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess

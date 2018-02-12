@@ -1,0 +1,62 @@
+{
+  "description": "CloudFormation Template Update - Manage updating CloudFormation Template from a S3 bucket.",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{AutomationAssumeRole}}",
+  "parameters": {
+    "StackNameOrId": {
+      "type": "String",
+      "description": "(Required) Name or Unique ID of the CloudFormation stack to be updated"
+    },
+    "TemplateUrl": {
+      "type": "String",
+      "description": "(Required) S3 bucket location of updated CloudFormation Template (e.g. https://s3.amazonaws.com/example/updated.template)"
+    },
+    "LambdaAssumeRole": {
+      "type": "String",
+      "description": "(Required) The ARN of the role assumed by lambda"
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf. ",
+      "default": ""
+    }
+  },
+  "mainSteps": [
+    {
+      "name": "createDocumentStack",
+      "action": "aws:createStack",
+      "inputs": {
+        "Capabilities": [
+          "CAPABILITY_IAM"
+        ],
+        "StackName": "UpdateCFTemplateStack{{automation:EXECUTION_ID}}",
+        "Parameters": [
+          {
+            "ParameterKey": "LambdaRoleArn",
+            "ParameterValue": "{{LambdaAssumeRole}}"
+          },
+          {
+            "ParameterKey": "LambdaName",
+            "ParameterValue": "UpdateCFTemplate-{{automation:EXECUTION_ID}}"
+          }
+        ],
+        "TemplateBody": "..."
+      }
+    },
+    {
+      "name": "updateCloudFormationTemplate",
+      "action": "aws:invokeLambdaFunction",
+      "inputs": {
+        "FunctionName": "UpdateCFTemplate-{{automation:EXECUTION_ID}}",
+        "Payload":  "{\"StackName\": \"{{StackNameOrId}}\", \"TemplateUrl\": \"{{TemplateUrl}}\"}"
+      }
+    },
+    {
+      "name": "deleteCloudFormationTemplate",
+      "action": "aws:deleteStack",
+      "inputs": {
+        "StackName": "UpdateCFTemplateStack{{automation:EXECUTION_ID}}"
+      }
+    }
+  ]
+}
