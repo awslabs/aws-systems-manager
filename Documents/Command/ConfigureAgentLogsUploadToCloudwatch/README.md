@@ -1,10 +1,10 @@
 # Configure SSM Agent CloudWatch Logging
 
-Amazon EC2 Systems Manager Document to configure SSM Agent logging to CloudWatch Logs. The document updates the logging configuration file. It can be used to change log level or add CloudWatch Logs as a logging destination. By enabling CloudWatch upload, all logs of SSM Agent would also be streamed to the CloudWatch instance in addition to the being added to the log file on disk.
+This is a Systems Manager Document to configure SSM Agent logging to CloudWatch Logs. The document updates the logging configuration file. It can be used to change log level or add CloudWatch Logs as a logging destination. By enabling CloudWatch upload, all logs of SSM Agent would also be streamed to the CloudWatch instance in addition to the being added to the log file on disk.
 
 ## Type of Document
 
-*Command* Document - Can be used with RunCommand
+*Command* Document - Can be used with Run Command
 
 ## Supported Platforms
 
