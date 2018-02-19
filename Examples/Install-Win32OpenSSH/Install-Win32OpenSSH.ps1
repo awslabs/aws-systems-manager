@@ -49,7 +49,7 @@ function Install-PowerShellCore {
     Invoke-WebRequest -OutFile $TargetFile -Uri $SourceURL
     Expand-Archive -Path $TargetFile -DestinationPath $UnzipFolder -Force
     Remove-Item -Path $TargetFile
-    [System.Environment]::SetEnvironmentVariable('PATH', ($env:PATH += (';{0}' -f $UnzipFolder)), [System.EnvironmentVariableTarget]::Machine)
+    [System.Environment]::SetEnvironmentVariable('PATH', ($env:PATH + (';{0}' -f $UnzipFolder)), [System.EnvironmentVariableTarget]::Machine)
     Write-Log -Message 'Finished installing PowerShell Core'
 }
  
