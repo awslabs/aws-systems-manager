@@ -97,7 +97,7 @@ function Install-OpenSSH {
     #Set-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShellCommandOption -Value '-Command'
 }
  
-function Configure-SSHD {
+function Complete-SSHDConfig {
   Write-Log -Message 'Configuring SSH daemon'
  
   $ConfigPath = '{0}\ssh\sshd_config' -f $env:ProgramData
@@ -115,7 +115,7 @@ function Configure-SSHD {
   Write-Log -Message 'Finished configuring SSH daemon'
 }
  
-function Configure-AuthorizedKeys {
+function Build-SSHDAuthorizedKeys {
   <#
   .Parameter ParameterName
   The name of the AWS Systems Manager parameter that contains your SSH public key.
@@ -151,15 +151,23 @@ function StartServices {
 }
  
 function Set-OpenSSHFirewall {
-  Write-Log -Message 'Starting configuration of Windows Firewall rule for SSH daemon'
-  New-NetFirewallRule -LocalPort 22 -Direction Inbound -Profile Any -DisplayName sshd22 -Name 'Secure Shell (SSH) Daemon (sshd)' -Enabled true -Action Allow -Protocol TCP -ErrorAction Ignore
-  Write-Log -Message 'Configured the Windows Firewall for ssh daemon'
+  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Low')]
+  param (
+    [switch] $Force
+  )
+  if ($PSCmdlet.ShouldProcess('Windows Firewall', 'Open SSH connectivity')) {
+    if ($Force -or $PSCmdlet.ShouldContinue()) {
+      Write-Log -Message 'Starting configuration of Windows Firewall rule for SSH daemon'
+      New-NetFirewallRule -LocalPort 22 -Direction Inbound -Profile Any -DisplayName sshd22 -Name 'Secure Shell (SSH) Daemon (sshd)' -Enabled true -Action Allow -Protocol TCP -ErrorAction Ignore
+      Write-Log -Message 'Configured the Windows Firewall for ssh daemon'
+    }
+  }
 }
  
 Install-PowerShellCore
 Install-PuTTY
 Install-OpenSSH
-Configure-SSHD
-Configure-AuthorizedKeys
+Complete-SSHDConfig
+Build-SSHDAuthorizedKeys
 StartServices
 Set-OpenSSHFirewall
