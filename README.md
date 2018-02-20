@@ -1,5 +1,5 @@
 # AWS Systems Manager
-Welcome to the Systems Manager community! Systems Manager allows you to automate common administrative tasks across resources on AWS and on-premises. Using Systems Manager, you can group resources by application and automate operational tasks on those resources. For example, you can remotely manage, collect inventory, patch, and configure your grouped resources. 
+Welcome to the Systems Manager community! Systems Manager allows you to automate common administrative tasks across resources on AWS and on-premises. Using Systems Manager, you can group resources by application and automate operational tasks on those resources. For example, you can remotely manage, collect inventory, patch, and configure your grouped resources.
 
 ## New to Systems Manager?
 Here are some resources for you to get started with Systems Manager:
@@ -9,7 +9,7 @@ Here are some resources for you to get started with Systems Manager:
 * The SSM Agent is also open sourced on GitHub [here](https://github.com/aws/amazon-ssm-agent) 
 
 ## Structure
-The repo has top level folders that include:
+The repository has top level folders that include:
 
 * Documents: Contains Automation and Command type Documents. Each Document is a separate folder under the respective Document type
 * Compliance: Contains InSpec profiles and other compliance scripts that you can use with Systems Manager
@@ -22,4 +22,4 @@ Contributions are welcome! The goal of the project is for developers to provide 
 Please see the [CONTRIBUTING.md](https://github.com/awslabs/amazon-ssm/blob/master/CONTRIBUTING.md) file for more information.
 
 ## Legal and Licensing
-This repo is licensed under the [MIT no attribution license](https://github.com/awslabs/amazon-ssm/blob/master/LICENSE).
+This repository is licensed under the [MIT no attribution license](https://github.com/awslabs/amazon-ssm/blob/master/LICENSE).

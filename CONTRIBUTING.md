@@ -1,5 +1,5 @@
-# Contributing to the AWS Systems Manager repo
-Contributions to the repo should be made via GitHub pull requests and discussed using GitHub issues.
+# Contributing to the AWS Systems Manager repository
+Contributions to the repository should be made under the [Community folder](https://github.com/awslabs/amazon-ssm/tree/master/Community) via GitHub pull requests and discussed using GitHub issues.
 
 ## What can you contribute?
 Examples of contributions include (but not limited to):
@@ -11,10 +11,10 @@ Examples of contributions include (but not limited to):
 
 Please add detailed descriptions, sample customer scenarios so that the content is usable.
 
-If you have any problems, please consult GitHub [issues](https://github.com/awslabs/amazon-ssm/issues) for this repo. If you do not find an existing problem, please file a new issue.
+If you have any problems, please consult GitHub [issues](https://github.com/awslabs/amazon-ssm/issues) for this repository. If you do not find an existing problem, please file a new issue.
 
 ## Making the pull request
 Pull requests should be opened against the `master` branch. We recommend that you provide a readme or description with any script or executable you contribute so that it’s easy to understand and get started.
 
 ## Licensing
-All content must be clearly licensed to [MIT no attribution license](https://github.com/awslabs/amazon-ssm/blob/master/LICENSE).  
+All content must be clearly licensed to [MIT no attribution license](https://github.com/awslabs/amazon-ssm/blob/master/LICENSE).
