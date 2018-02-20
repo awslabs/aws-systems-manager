@@ -36,7 +36,7 @@ function Write-Log {
  
 function Install-PowerShellCore {
     Write-Log -Message 'Installing PowerShell Core'
-    $SourceURL = 'https://github.com/PowerShell/PowerShell/releases/download/v6.0.0/PowerShell-6.0.0-win-x64.zip'
+    $SourceURL = 'https://github.com/PowerShell/PowerShell/releases/download/v6.0.1/PowerShell-6.0.1-win-x64.zip'
     $UnzipFolder = '{0}\pwsh' -f $env:SystemDrive
     $TargetFile = '{0}\pwsh.zip' -f $UnzipFolder
  
