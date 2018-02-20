@@ -170,4 +170,4 @@ Install-OpenSSH
 Complete-SSHDConfig
 Build-SSHDAuthorizedKeys
 StartServices
-Set-OpenSSHFirewall
+Set-OpenSSHFirewall -Force
