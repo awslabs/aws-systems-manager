@@ -15,6 +15,9 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+[System.Net.ServicePointManager]::Expect100Continue = $true
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+ 
 $ErrorActionPreference = 'stop'
 $ProgressPreference = 'silentlycontinue'
 $VerbosePreference = 'continue'
