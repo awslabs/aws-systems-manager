@@ -169,8 +169,10 @@ function Set-OpenSSHFirewall {
  
 Install-PowerShellCore
 Install-PuTTY
-Install-OpenSSH
-Complete-SSHDConfig
-Build-SSHDAuthorizedKeys
-StartServices
-Set-OpenSSHFirewall -Force
+if ((Get-Service -Name sshd -ErrorAction Ignore).Status -ne 'Running') {
+  Install-OpenSSH
+  Complete-SSHDConfig
+  Build-SSHDAuthorizedKeys
+  StartServices
+  Set-OpenSSHFirewall -Force
+}
