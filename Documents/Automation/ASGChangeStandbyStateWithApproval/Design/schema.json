@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "0.3",
+  "assumeRole": "{{AutomationAssumeRole}}",
+  "description": "Systems Manager Automation - Change the standby state of an EC2 instance in an auto-scaling group with approval",
+  "parameters": {
+    "InstanceId": {
+      "type": "String",
+      "description": "ID of the EC2 Instance to change standby state for within ASG"
+    },
+    "LambdaRoleArn": {
+      "default": "",
+      "type": "String",
+      "description": "The ARN of the role that allows Lambda created by Automation to perform the actions on your behalf"
+    },
+    "StackName": {
+      "default": "asg-state-change-lambda-cfn-stack",
+      "type": "String",
+      "description": "Name for the CloudFormation stack which creates the necessary lambda function to change ASG state"
+    },
+    "LambdaFunctionName": {
+      "default": "asg-state-change-lambda-function",
+      "type": "String",
+      "description": "Name for the lambda function which can change the ASG state"
+    },
+    "AutomationAssumeRole": {
+      "default": "",
+      "type": "String",
+      "description": "The ARN of the role that allows Automation to perform the actions on your behalf."
+    }
+  },
+  "mainSteps": []
+}

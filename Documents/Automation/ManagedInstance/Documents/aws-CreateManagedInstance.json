@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "0.3",
+  "description": "Base Managed Instance - Should not be used directly. Please run make",
+  "assumeRole": "{{AutomationAssumeRole}}",
+  "parameters": {
+    "AmiId": {
+      "type": "String",
+      "description": "(Required) AMI id to use for launching the instance."
+    },
+    "VpcId": {
+      "type": "String",
+      "description": "(Required) New instance will be deployed into this vpc or in the default vpc if not specified.",
+      "default": "Default"
+    },
+    "SubnetId": {
+      "type": "String",
+      "description": "(Required) New instance will be deployed into this subnet or in the default subnet if not specified.",
+      "default": "Default"
+    },
+    "RoleName": {
+      "type": "String",
+      "description": "(Required) Role Name to create.",
+      "default": "SSMManagedInstanceProfileRole"
+    },
+    "GroupName": {
+      "type": "String",
+      "description": "(Required) Security Group Name to create.",
+      "default": "SSMSecurityGroupFor{Windows|Linux}Instances"
+    },
+    "InstanceType": {
+      "type": "String",
+      "description": "(Required) Type of instance to launch. Default is t2.medium.",
+      "default": "t2.medium"
+    },
+    "KeyPairName": {
+      "type": "String",
+      "description": "(Required) Key pair to use when creating instance."
+    },
+    "RemoteAccessCidr": {
+      "type": "String",
+      "description": "(Required) Replaced by make",
+      "default": "0.0.0.0/0"
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf",
+      "default": ""
+    },
+    "StackName": {
+      "type": "String",
+      "description": "(Optional) Specify stack name used by this document",
+      "default": "CreateManagedInstanceStack{{automation:EXECUTION_ID}}"
+    }
+  },
+  "mainSteps": [
+    {
+      "name": "createManagedInstanceStack",
+      "action": "aws:createStack",
+      "maxAttempts": 1,
+      "onFailure": "Abort",
+      "inputs": {
+        "OnFailure": "ROLLBACK",
+        "Capabilities": [
+          "CAPABILITY_IAM"
+        ],
+        "Parameters": [
+          {
+            "ParameterKey": "AmiId",
+            "ParameterValue": "{{AmiId}}"
+          },
+          {
+            "ParameterKey": "InstanceType",
+            "ParameterValue": "{{InstanceType}}"
+          },
+          {
+            "ParameterKey": "RoleName",
+            "ParameterValue": "{{RoleName}}"
+          },
+          {
+            "ParameterKey": "GroupName",
+            "ParameterValue": "{{GroupName}}"
+          },
+          {
+            "ParameterKey": "VpcId",
+            "ParameterValue": "{{VpcId}}"
+          },
+          {
+            "ParameterKey": "SubnetId",
+            "ParameterValue": "{{SubnetId}}"
+          },
+          {
+            "ParameterKey": "LambdaRoleArn",
+            "ParameterValue": "{{AutomationAssumeRole}}"
+          },
+          {
+            "ParameterKey": "KeyName",
+            "ParameterValue": "{{KeyPairName}}"
+          },
+          {
+            "ParameterKey": "RemoteAccessCidr",
+            "ParameterValue": "{{RemoteAccessCidr}}"
+          }
+        ],
+        "StackName": "{{StackName}}",
+        "TemplateBody": "...",
+        "TimeoutInMinutes": 30
+      }
+    },
+    {
+      "name": "deleteManagedInstanceStack",
+      "action": "aws:deleteStack",
+      "maxAttempts": 1,
+      "onFailure": "Abort",
+      "inputs": {
+        "StackName": "{{StackName}}"
+      }
+    }
+  ]
+}

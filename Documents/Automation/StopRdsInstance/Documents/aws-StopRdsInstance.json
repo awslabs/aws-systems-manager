@@ -1,0 +1,74 @@
+{
+	"description": "Stop RDS instance",
+	"schemaVersion": "0.3",
+	"assumeRole": "{{ AutomationAssumeRole }}",
+	"parameters": {
+		"InstanceId": {
+			"type": "String",
+			"description": "(Required) RDS Instance Id to stop"
+		},
+		"AutomationAssumeRole": {
+			"type": "String",
+			"description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf.",
+			"default": ""
+		},
+		"LambdaAssumeRole": {
+			"type": "String",
+			"description": "(Optional) The ARN of the role assumed by lambda",
+			"default": ""
+		}
+	},
+	"mainSteps": [
+		{
+			"name": "createDocumentStack",
+			"action": "aws:createStack",
+			"inputs": {
+				"Capabilities": [
+					"CAPABILITY_IAM"
+				],
+				"StackName": "StopRdsInstanceStack{{automation:EXECUTION_ID}}",
+				"Parameters": [
+					{
+						"ParameterKey": "LambdaRoleArn",
+						"ParameterValue": "{{LambdaAssumeRole}}"
+					},
+					{
+						"ParameterKey": "LambdaName",
+						"ParameterValue": "StopRdsInstanceLambda-{{automation:EXECUTION_ID}}"
+					},
+					{
+						"ParameterKey": "WaitLambdaName",
+						"ParameterValue": "VerifyRdsLambda-{{automation:EXECUTION_ID}}"
+					}
+				],
+				"TemplateBody": "..."
+			}
+		},
+		{
+			"name": "stopInstance",
+			"action": "aws:invokeLambdaFunction",
+			"inputs": {
+				"FunctionName": "StopRdsInstanceLambda-{{automation:EXECUTION_ID}}",
+				"Payload":  "{\"InstanceId\": \"{{InstanceId}}\"}"
+			}
+		},
+		{
+			"name": "checkStop",
+			"action": "aws:invokeLambdaFunction",
+			"maxAttempts": 10,
+			"timeoutSeconds": 600,
+			"onFailure": "Abort",
+			"inputs": {
+				"FunctionName": "VerifyRdsLambda-{{automation:EXECUTION_ID}}",
+				"Payload":  "{\"InstanceId\": \"{{InstanceId}}\", \"States\": [\"stopped\"]}"
+			}
+		},
+		{
+			"name": "deleteCloudFormationTemplate",
+			"action": "aws:deleteStack",
+			"inputs": {
+				"StackName": "StopRdsInstanceStack{{automation:EXECUTION_ID}}"
+			}
+		}
+	]
+}

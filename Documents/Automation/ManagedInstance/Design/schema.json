@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "0.3",
+  "description": "Creates a Linux Managed Instance",
+  "assumeRole": "{{AutomationAssumeRole}}",
+  "parameters": {
+    "AmiId": {
+      "type": "String",
+      "description": "(Required) AMI id to use for launching the instance.",
+      "default": "window|linux"
+    },
+    "VpcId": {
+      "type": "String",
+      "description": "(Required) New instance will be deployed into this vpc or in the default vpc if not specified.",
+      "default": "Default"
+    },
+    "SubnetId": {
+      "type": "String",
+      "description": "(Required) New instance will be deployed into this subnet or in the default subnet if not specified.",
+      "default": "Default"
+    },
+    "RoleName": {
+      "type": "String",
+      "description": "(Required) Role Name to create.",
+      "default": "SSMManagedInstanceProfileRole"
+    },
+    "GroupName": {
+      "type": "String",
+      "description": "(Required) Security Group Name to create.",
+      "default": "SSMSecurityGroupFor{Windows|Linux}Instances"
+    },
+    "InstanceType": {
+      "type": "String",
+      "description": "(Required) Type of instance to launch. Default is t2.medium.",
+      "default": "t2.medium"
+    },
+    "KeyPairName": {
+      "type": "String",
+      "description": "(Required) Key pair to use when creating instance."
+    },
+    "RemoteAccessCidr": {
+      "type": "String",
+      "description": "(Optional) Specify CIDR allowed to access the instance remotely through SSH/RDP. No rule will be added if left blank",
+      "default": ""
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf",
+      "default": ""
+    },
+    "StackName": {
+      "type": "String",
+      "description": "(Optional) Specify stack name used by this document",
+      "default": "CreateManagedInstanceStack{{automation:EXECUTION_ID}}"
+    }
+  },
+  "mainSteps": []
+}
