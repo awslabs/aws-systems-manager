@@ -1,0 +1,30 @@
+{
+    "description": "Configure CloudWatch on EC2 Instance",
+    "schemaVersion": "0.3",
+    "assumeRole": "{{AutomationAssumeRole}}",
+    "parameters": {
+        "InstanceId": {
+            "type": "String",
+            "description": "(Required) InstanceId of the EC2 instance to configure"
+        },
+        "AutomationAssumeRole": {
+            "type": "String",
+            "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf.",
+            "default": ""
+        },
+        "status" : {
+            "type": "String",
+            "description": "(Optional) Specifies whether to enable or disable CloudWatch. Valid values: \"Enabled\" | \"Disabled\"",
+            "allowedValues": [
+                "Enabled",
+                "Disabled"
+            ],
+            "default": "Enabled"
+        },
+        "properties": {
+            "type": "String",
+            "description": "(Optional) The configuration for CloudWatch in JSON format."
+        }
+    },
+    "mainSteps": []
+}

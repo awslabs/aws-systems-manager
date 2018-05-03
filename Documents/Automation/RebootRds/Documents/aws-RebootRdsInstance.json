@@ -1,0 +1,74 @@
+{
+	"description": "Reboot RDS Instance",
+	"schemaVersion": "0.3",
+	"assumeRole": "{{AutomationAssumeRole}}",
+	"parameters": {
+		"InstanceId": {
+			"type": "String",
+			"description": "(Required) Identifies the *RDS* instance subject to action"
+		},
+		"AutomationAssumeRole": {
+			"type": "String",
+			"description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf.",
+			"default": ""
+		},
+		"LambdaAssumeRole": {
+			"type": "String",
+			"description": "(Optional) The ARN of the role assumed by lambda",
+			"default": ""
+		}
+	},
+	"mainSteps": [
+		{
+			"name": "createDocumentStack",
+			"action": "aws:createStack",
+			"inputs": {
+				"Capabilities": [
+					"CAPABILITY_IAM"
+				],
+				"StackName": "RebootRdsInstanceStack{{automation:EXECUTION_ID}}",
+				"Parameters": [
+					{
+						"ParameterKey": "LambdaRoleArn",
+						"ParameterValue": "{{LambdaAssumeRole}}"
+					},
+					{
+						"ParameterKey": "RebootLambdaName",
+						"ParameterValue": "RebootRdsInstanceLambda-{{automation:EXECUTION_ID}}"
+					},
+					{
+						"ParameterKey": "WaitLambdaName",
+						"ParameterValue": "VerifyRdsLambda-{{automation:EXECUTION_ID}}"
+					}
+				],
+				"TemplateBody": "..."
+			}
+		},
+		{
+			"name": "reboot",
+			"action": "aws:invokeLambdaFunction",
+			"inputs": {
+				"FunctionName": "RebootRdsInstanceLambda-{{automation:EXECUTION_ID}}",
+				"Payload":  "{\"InstanceId\": \"{{InstanceId}}\"}"
+			}
+		},
+		{
+			"name": "wait_for_state",
+			"action": "aws:invokeLambdaFunction",
+			"maxAttempts": 10,
+			"timeoutSeconds": 600,
+			"onFailure": "Abort",
+			"inputs": {
+				"FunctionName": "VerifyRdsLambda-{{automation:EXECUTION_ID}}",
+				"Payload":  "{\"InstanceId\": \"{{InstanceId}}\", \"States\": [\"available\"]}"
+			}
+		},
+		{
+			"name": "deleteCloudFormationTemplate",
+			"action": "aws:deleteStack",
+			"inputs": {
+				"StackName": "RebootRdsInstanceStack{{automation:EXECUTION_ID}}"
+			}
+		}
+	]
+}
