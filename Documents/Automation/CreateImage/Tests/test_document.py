@@ -60,8 +60,6 @@ INSTANCE_TYPE = CONFIG.get('windows', 'instance_type')
 LINUX_AMI_ID = CONFIG.get('linux', 'ami')
 LINUX_INSTANCE_TYPE = CONFIG.get('linux', 'instance_type')
 
-NEW_INSTANCE_TYPE = 't2.nano'
-
 SSM_DOC_NAME = PREFIX + 'create-image'
 CFN_STACK_NAME = PREFIX + 'create-image'
 TEST_CFN_STACK_NAME = PREFIX + 'create-image'
@@ -103,7 +101,7 @@ class DocumentTest(unittest.TestCase):
         ssm_doc = ssm_testing.SSMTester(
             ssm_client=ssm_client,
             doc_filename=os.path.join(DOC_DIR,
-                                      'Output/aws-CreateImage.json'),
+                                      'Documents/aws-CreateImage.json'),
             doc_name=SSM_DOC_NAME,
             doc_type='Automation'
         )
@@ -149,13 +147,13 @@ class DocumentTest(unittest.TestCase):
                         'AutomationAssumeRole': [role_arn]})
             self.assertEqual(ssm_doc.automation_execution_status(ssm_client, execution, False), 'Success')
 
-            LOGGER.info('Create an Amazon Machine Image has been initiated')
+            LOGGER.info('Create a new Amazon Machine Image has been initiated')
 
             ec2_resource = boto3.resource('ec2')
             ec2client = boto3.client('ec2')
             instance = ec2_resource.Instance(instance_id)
             
-            imageName = instance_id + '-' + execution
+            imageName = instance_id + '_' + execution
             describeImage = ec2client.describe_images(Filters = [ { 'Name': 'name','Values': [ imageName ], } ] )
             ImageId = describeImage['Images'][0]['ImageId']
 
@@ -181,4 +179,3 @@ class DocumentTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
