@@ -16,7 +16,7 @@
 #
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Test stack for Create an Amazon Machine Image (AMI)
+Description: Test stack for Create a new Amazon Machine Image (AMI)
 Outputs:
   InstanceId:
     Description: Instance Id
@@ -66,4 +66,4 @@ Resources:
       InstanceType: !Ref INSTANCETYPE
       Tags:
         - Key: Name
-          Value: Test Create an Amazon Machine Image (AMI)
+          Value: Test Create a new Amazon Machine Image (AMI)
