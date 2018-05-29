@@ -43,7 +43,7 @@ class CFNTester(object):
             params = []
 
         self.delete_stack()
-        LOGGER.info('Creating stack %s', self.stack_name)
+        LOGGER.info('Creating stack %s' % self.stack_name)
         stack = self.cfn_client.create_stack(
             StackName=self.stack_name,
             TemplateBody=self.template_body,
@@ -88,7 +88,7 @@ class CFNTester(object):
             # Nothing to do here
             return True
         else:
-            LOGGER.info('Deleting existing stack %s', self.stack_name)
+            LOGGER.info('Deleting existing stack %s' % self.stack_name)
             self.cfn_client.delete_stack(StackName=self.stack_name)
             while self.is_stack_present() is True:
                 LOGGER.info('Waiting %d seconds before checking again for successful stack deletion' % poll_interval)
