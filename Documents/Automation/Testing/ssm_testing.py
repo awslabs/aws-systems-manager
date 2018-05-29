@@ -37,7 +37,7 @@ class CFNTester(object):
         self.stack_name = stack_name
         self.stack_outputs = {}
 
-    def create_stack(self, params=None):
+    def create_stack(self, params=None, poll_interval=10):
         """Create stack and wait for its deployment to complete."""
         if params is None:
             params = []
@@ -51,9 +51,8 @@ class CFNTester(object):
             Capabilities=['CAPABILITY_IAM']
         )
         while self.is_stack_in_status('CREATE_IN_PROGRESS') is True:
-            LOGGER.info('Waiting 10 seconds before checking again for '
-                        'successful stack creation')
-            time.sleep(10)
+            LOGGER.info('Waiting %d seconds before checking again for successful stack creation' % poll_interval)
+            time.sleep(poll_interval)
         if self.is_stack_in_status('CREATE_COMPLETE') is True:
             for i in self.cfn_client.describe_stacks(
                     StackName=self.stack_name
@@ -83,7 +82,7 @@ class CFNTester(object):
         else:
             return True
 
-    def delete_stack(self):
+    def delete_stack(self, poll_interval=10):
         """Delete stack if it is present."""
         if self.can_create_stack():
             # Nothing to do here
@@ -92,9 +91,8 @@ class CFNTester(object):
             LOGGER.info('Deleting existing stack %s', self.stack_name)
             self.cfn_client.delete_stack(StackName=self.stack_name)
             while self.is_stack_present() is True:
-                LOGGER.info('Waiting 10 seconds before checking again for '
-                            'successful stack deletion')
-                time.sleep(10)
+                LOGGER.info('Waiting %d seconds before checking again for successful stack deletion' % poll_interval)
+                time.sleep(poll_interval)
             return True
 
 
@@ -109,7 +107,7 @@ class SSMTester(object):
         self.doc_name = doc_name
         self.doc_type = doc_type
 
-    def create_document(self):
+    def create_document(self, poll_interval=5):
         """Upload document and wait for its deployment to complete."""
         if self.document_exists() is True:
             LOGGER.info('Deleting previously deployed document')
@@ -123,9 +121,8 @@ class SSMTester(object):
         while self.ssm_client.describe_document(
                 Name=self.doc_name
         )['Document']['Status'] in PENDING_DOC_STATUS:
-            LOGGER.info('Waiting 5 seconds before checking again for '
-                        'document creation')
-            time.sleep(5)
+            LOGGER.info('Waiting %d seconds before checking again for document creation' % poll_interval)
+            time.sleep(poll_interval)
         return self.ssm_client.describe_document(
             Name=self.doc_name
         )['Document']['Status']
@@ -150,7 +147,8 @@ class SSMTester(object):
         self.ssm_client.delete_document(Name=self.doc_name)
 
     @staticmethod
-    def automation_execution_status(ssm_client, execution_id, block_on_waiting=True, status_callback=None):
+    def automation_execution_status(ssm_client, execution_id,
+                                    block_on_waiting=True, status_callback=None, poll_interval=10):
         """Return execution status, waiting for completion if in progress."""
 
         statuses = PENDING_AUTOMATION_STATUS_WITH_WAITING
@@ -167,11 +165,11 @@ class SSMTester(object):
             if current_status not in statuses:
                 return current_status
 
-            LOGGER.info('Waiting 10 seconds before checking again for automation conclusion')
-            time.sleep(10)
+            LOGGER.info('Waiting %d seconds before checking again for automation conclusion' % poll_interval)
+            time.sleep(poll_interval)
 
     @staticmethod
-    def ensure_no_instance_in_state(ec2_client, state, instances=None):
+    def ensure_no_instance_in_state(ec2_client, state, instances=None, poll_interval=10):
         """Wait for a list of instances to stop being in a specified state."""
         if instances is None:
             instances = []
@@ -180,9 +178,9 @@ class SSMTester(object):
                 InstanceIds=instances,
                 IncludeAllInstances=True
         )['InstanceStatuses']):
-            LOGGER.info('Instance(s) still found in state %s; waiting 10 '
-                        'seconds before checking state again', state)
-            time.sleep(10)
+            LOGGER.info('Instance(s) still found in state %s; waiting %d seconds before checking state again' %
+                        state, poll_interval)
+            time.sleep(poll_interval)
 
     @staticmethod
     def role_exists(iam_client, role_name):
@@ -223,5 +221,3 @@ class VPCTester(object):
                 available_subnets.append(subnet) if subnet.state == 'available' else False
 
         return available_subnets
-
-
