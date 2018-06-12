@@ -1,0 +1,27 @@
+{
+  "description": "Delete Amazon Machine Image (AMI) and all associated snapshots.",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{ AutomationAssumeRole }}",
+  "parameters": {
+    "ImageId": {
+      "type": "String",
+      "description": "(Required) The ID of the Amazon Machine Image (AMI)."
+    },
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf. ",
+      "default": ""
+    }
+  },
+  "mainSteps": [
+  {
+    "name": "deleteImage",
+    "action": "aws:deleteImage",
+    "maxAttempts": 3,
+    "onFailure": "Abort",
+    "inputs": {
+        "ImageId": "{{ ImageId }}"
+    }
+}
+  ]
+}
