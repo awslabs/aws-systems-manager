@@ -36,9 +36,20 @@
     {
       "name": "stopInstances",
       "action": "aws:changeInstanceState",
+      "onFailure": "Continue",
       "inputs": {
         "InstanceIds": "{{ InstanceId }}",
         "DesiredState": "stopped"
+      }
+    },
+    {
+      "name": "forceStopInstances",
+      "action": "aws:changeInstanceState",
+      "inputs": {
+        "InstanceIds": "{{ InstanceId }}",
+        "CheckStateOnly": false,
+        "DesiredState": "stopped",
+        "Force": true
       }
     }
   ]
