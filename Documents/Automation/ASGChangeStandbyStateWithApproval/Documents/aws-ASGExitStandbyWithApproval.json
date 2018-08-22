@@ -1,0 +1,58 @@
+{
+  "description": "Systems Manager Automation - Take an EC2 instance in an auto-scaling group out of Standby mode, with approval",
+  "schemaVersion": "0.3",
+  "assumeRole": "{{AutomationAssumeRole}}",
+  "parameters": {
+    "AutomationAssumeRole": {
+      "type": "String",
+      "description": "The ARN of the role that allows Automation to perform the actions on your behalf.",
+      "default": ""
+    },
+    "LambdaRoleArn": {
+      "type": "String",
+      "description": "The ARN of the role that allows Lambda created by Automation to perform the actions on your behalf",
+      "default": ""
+    },
+    "InstanceId": {
+      "type": "String",
+      "description": "ID of the EC2 Instance to change standby state for within ASG"
+    },
+    "Approvers": {
+      "type": "StringList",
+      "description": "IAM user or user arn of approvers for the automation action"
+    },
+    "SNSTopicArn": {
+      "type": "String",
+      "description": "The SNS topic ARN that you are using to get notifications on about EC2 retirement notifications. The SNS topic name must start with Automation."
+    }
+  },
+  "mainSteps": [
+    {
+      "name": "approveStateChange",
+      "action": "aws:approve",
+      "maxAttempts": 1,
+      "onFailure": "Abort",
+      "inputs": {
+        "NotificationArn": "{{SNSTopicArn}}",
+        "Message": "Approval required to change ASG instance state",
+        "MinRequiredApprovals": 1,
+        "Approvers": "{{Approvers}}"
+      }
+    },
+    {
+      "name":"changeASGInstanceStateAutomation",
+      "action":"aws:executeAutomation",
+      "maxAttempts":1,
+      "timeoutSeconds":120,
+      "onFailure":"Abort",
+      "inputs":{
+        "DocumentName":"AWS-ASGExitStandby",
+        "RuntimeParameters":{
+          "AutomationAssumeRole": ["{{AutomationAssumeRole}}"],
+          "LambdaRoleArn": ["{{LambdaRoleArn}}"],
+          "InstanceId": ["{{InstanceId}}"]
+        }
+      }
+    }
+  ]
+}

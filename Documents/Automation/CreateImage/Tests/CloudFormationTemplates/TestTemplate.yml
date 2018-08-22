@@ -1,0 +1,69 @@
+#
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Test stack for Create a new Amazon Machine Image (AMI)
+Outputs:
+  InstanceId:
+    Description: Instance Id
+    Value:
+      Ref: Instance0
+  AutomationAssumeRoleName:
+    Description: Automation Assume Role Name
+    Value: !Ref AutomationAssumeRole
+  AutomationAssumeRoleARN:
+    Description: Automation Assume Role ARN
+    Value: !GetAtt AutomationAssumeRole.Arn
+Parameters:
+  AMI:
+    Description: AMI ID for instances.
+    Type: String
+  INSTANCETYPE:
+    Description: AMI Instance Type (t2.micro, m1.large, etc.)
+    Type: String
+  UserARN:
+    Description: user ARN
+    Type: String
+Resources:
+  AutomationAssumeRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+                - "ssm.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+          - Effect: "Allow"
+            Principal:
+              AWS: !Ref UserARN
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
+  Instance0:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref INSTANCETYPE
+      Tags:
+        - Key: Name
+          Value: Test Create a new Amazon Machine Image (AMI)

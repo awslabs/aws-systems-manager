@@ -1,0 +1,182 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  AmiId:
+    Description: AMI ID to be deploy.
+    Type: String
+  InstanceType:
+    Description: Instance Type to deploy.
+    Type: String
+  RoleName:
+    Description: "(Required) Role name to use or create if it does not exists."
+    Type: String
+  GroupName:
+    Description: "(Required) Security Group Name to use or create if it does not exists."
+    Type: String
+  VpcId:
+    Description: VPC to deploy the instance in.
+    Type: String
+  SubnetId:
+    Description: Subnet to deploy the instance in.
+    Type: String
+  LambdaRoleArn:
+    Description: >
+      Assume role used by the lambda function. If not specified this template will create a temporarily role to be used
+      by the lambda created in this template.
+    Type: String
+    Default: ""
+  KeyName:
+    Default: ''
+    Description: Name of an existing EC2-VPC KeyPair
+    Type: String
+  Verbose:
+    Description: >
+      Verbose setting
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+  RemoteAccessCidr:
+    Description: >
+      CIDR block allowed access to SSH or RDP to the instance that is deployed. Only added to ingress if a new security
+      group is created.
+    Type: String
+    Default: ""
+Conditions:
+  KeyNameSpecified:
+    !And
+      - !Not [!Equals [!Ref KeyName, '']]
+      - !Not [!Equals [!Ref KeyName, 'undefined']]
+  LambdaAssumeRoleNotSpecified:
+    !Or
+      - !Equals [!Ref LambdaRoleArn, '']
+      - !Equals [!Ref LambdaRoleArn, 'undefined']
+  IsVerbose:
+    !Equals [!Ref Verbose, "true"]
+  IsVerboseAndLambdaRoleNotSpecified:
+    !And
+      - Condition: LambdaAssumeRoleNotSpecified
+      - Condition: IsVerbose
+  RemoteAccessSpecified:
+    !And
+      - !Not [!Equals [!Ref RemoteAccessCidr, '']]
+      - !Not [!Equals [!Ref RemoteAccessCidr, 'undefined']]
+Resources:
+  # Assume role used by the lambda function (only created if not passed in)
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Condition: LambdaAssumeRoleNotSpecified
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: ["sts:AssumeRole"]
+            Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonSSMFullAccess
+        - arn:aws:iam::aws:policy/IAMFullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+      Path: "/"
+  LambdaLogPolicy:
+    Type: AWS::IAM::Policy
+    Condition: IsVerboseAndLambdaRoleNotSpecified
+    Properties:
+      PolicyName: "lambda-log-access"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Action:
+            - log:CreateLogStream
+            - log:PutLogEvents
+            - log:CreateLogGroup
+          Effect: Allow
+          Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+      Roles: [!Ref LambdaRole]
+  # Lambda get ami-information
+  # Attr: Platform, VpcId
+  CollectInformationLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "{}"
+      Role: !If ["LambdaAssumeRoleNotSpecified", !GetAtt LambdaRole.Arn, !Ref LambdaRoleArn]
+      Timeout: 60
+      Handler: "index.handler"
+      Runtime: python2.7
+      MemorySize: 128
+  # Lambda get ami-information
+  # Attr: Platform, VpcId
+  CollectSubnetInfoLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "{}"
+      Role: !If ["LambdaAssumeRoleNotSpecified", !GetAtt LambdaRole.Arn, !Ref LambdaRoleArn]
+      Timeout: 60
+      Handler: "index.handler"
+      Runtime: python2.7
+      MemorySize: 128
+  # Lambda function to create a security group if it does not exists
+  # Attr: SecurityGroupId
+  SecurityGroupLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "{}"
+      Role: !If ["LambdaAssumeRoleNotSpecified", !GetAtt LambdaRole.Arn, !Ref LambdaRoleArn]
+      Timeout: 60
+      Handler: "index.handler"
+      Runtime: python2.7
+      MemorySize: 128
+  # Lambda function to create managed instance profile if it does not exists
+  # Attr:
+  InstanceProfileLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "{}"
+      Role: !If ["LambdaAssumeRoleNotSpecified", !GetAtt LambdaRole.Arn, !Ref LambdaRoleArn]
+      Timeout: 60
+      Handler: "index.handler"
+      Runtime: python2.7
+      MemorySize: 128
+  CollectInformation:
+    Type: Custom::CollectInformation
+    Properties:
+      ServiceToken: !GetAtt CollectInformationLambda.Arn
+      AmiId: !Ref AmiId
+      VpcId: !Ref VpcId
+  CollectSubnetInformation:
+    Type: Custom::CollectSubnetInformation
+    Properties:
+      ServiceToken: !GetAtt CollectSubnetInfoLambda.Arn
+      VpcId: !GetAtt CollectInformation.VpcId
+      SubnetId: !Ref SubnetId
+  CreateInstanceRole:
+    Type: Custom::InstanceProfile
+    Properties:
+      ServiceToken: !GetAtt InstanceProfileLambda.Arn
+      InstanceProfileName: !Ref RoleName
+  CreateSecurityGroup:
+    Type: Custom::SecurityGroup
+    Properties:
+      ServiceToken: !GetAtt SecurityGroupLambda.Arn
+      Platform: !GetAtt CollectInformation.Platform
+      AccessCidr: !Ref RemoteAccessCidr
+      GroupName: !Ref GroupName
+      VpcId: !GetAtt CollectInformation.VpcId
+  CreateInstance:
+    Type: AWS::EC2::Instance
+    DeletionPolicy: Retain
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref RoleName
+      KeyName: !If [KeyNameSpecified, !Ref KeyName, !Ref "AWS::NoValue"]
+      SecurityGroupIds: [!GetAtt CreateSecurityGroup.SecurityGroupId]
+      UserData: !GetAtt CollectInformation.UserData
+      SubnetId: !GetAtt CollectSubnetInformation.SubnetId
