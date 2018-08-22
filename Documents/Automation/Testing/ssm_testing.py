@@ -17,6 +17,8 @@
 #!/usr/bin/env python
 """Testing support module for SSM documents."""
 
+from collections import OrderedDict
+import json
 import logging
 import time
 
@@ -145,6 +147,83 @@ class SSMTester(object):
     def destroy(self):
         """Delete SSM document."""
         self.ssm_client.delete_document(Name=self.doc_name)
+
+    @staticmethod
+    def convert_document_to_dot_graph(doc_filename):
+        """Create a graph representation of the SSM document
+        in dot language to visualize when and how branching occurs."""
+        # Loading the document as json
+        with open(doc_filename, 'r') as jsonfile:
+            json_doc = json.load(jsonfile, object_pairs_hook=OrderedDict)
+
+        # Initializating the graph variable with the document description and the default Start and End nodes
+        graph = []
+        graph.append("// {}".format(json_doc["description"]))
+        graph.append("digraph {")
+        graph.append("    Start [label=Start]")
+        graph.append("    End [label=End]")
+        
+        # If the document step does not explicitly define the next step on failure and on success,
+        # then the next step from the document will use the following variables to create the edge
+        add_edge_from_previous_step = False
+        label = ""
+        previous_step_name = ""
+
+        for index, step in enumerate(json_doc["mainSteps"]):
+            if add_edge_from_previous_step:
+                graph.append("    {} -> {} [label={}]".format(
+                    previous_step_name, step["name"], label))
+                add_edge_from_previous_step = False
+
+            # Create the edge from the Start node if this is the first node of the document
+            if index == 0:
+                graph.append("    {} -> {}".format("Start", step["name"]))
+            # Create the two edges to the End node if this is the last node of the document, then exit the loop
+            elif index == (len(json_doc["mainSteps"]) - 1):
+                graph.append("    {} -> {} [label={}]".format(step["name"], "End", "onSuccess"))
+                graph.append("    {} -> {} [label={}]".format(step["name"], "End", "onFailure"))
+                break
+
+            # If nextStep is used in the step, using it to create the edge,
+            # else we save the current step information to be able to create the edge when inspecting the next available step
+            if "nextStep" in step:
+                graph.append("    {} -> {} [label={}]".format(
+                    step["name"], step["nextStep"], "onSuccess"))
+            # When isEnd is true, create an edge to the End node
+            elif "isEnd" in step:
+                if step["isEnd"] == "true":
+                    graph.append("    {} -> {} [label={}]".format(step["name"], "End", "onSuccess"))
+            else:
+                add_edge_from_previous_step = True
+                label = "onSuccess"
+                previous_step_name = step["name"]
+
+            # If onFailure is Abort or not specified, create an edge to the End node.
+            if "onFailure" in step:
+                if step["onFailure"] == "Abort":
+                    graph.append("    {} -> {} [label={}]".format(
+                        step["name"], "End", "onFailure"))
+                # If onFailure is Continue, we look for nextStep,
+                # or save the current step information to be able to create the edge when inspecting the next available step
+                elif step["onFailure"] == "Continue":
+                    if "nextStep" in step:
+                        graph.append("    {} -> {} [label={}]".format(
+                            step["name"], step["nextStep"], "onFailure"))
+                    else:
+                        add_edge_from_previous_step = True
+                        label = "onFailure"
+                        previous_step_name = step["name"]
+                # Lastly, retrieve the next step from onFailure directly
+                else:
+                    graph.append("    {} -> {} [label={}]".format(
+                        step["name"], step["onFailure"].replace("step:", ""), "onFailure"))
+            else:
+                graph.append("    {} -> {} [label={}]".format(
+                        step["name"], "End", "onFailure"))
+
+        graph.append("}")
+
+        return "\n".join(graph)
 
     @staticmethod
     def automation_execution_status(ssm_client, execution_id,
