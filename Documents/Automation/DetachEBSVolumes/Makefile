@@ -19,6 +19,10 @@ TARGET_DIR = "./Output"
 documents: targetdir createdocuments
 	@echo "Done making documents"
 
+graph: targetdir createdocuments
+	python ./Setup/create_document_graph.py > ./Output/aws-DetachEBSVolume.dot
+	@echo "Done making document graph"
+
 targetdir:
 	@echo "Making $(TARGET_DIR)"
 	mkdir -p ./Output
