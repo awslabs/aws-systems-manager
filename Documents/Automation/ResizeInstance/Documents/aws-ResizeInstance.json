@@ -47,6 +47,7 @@
     {
       "name": "stopInstances",
       "action": "aws:changeInstanceState",
+      "onFailure": "step:deleteCloudFormationTemplate",
       "inputs": {
         "InstanceIds": ["{{InstanceId}}"],
         "DesiredState": "stopped"
