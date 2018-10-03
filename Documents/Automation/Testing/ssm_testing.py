@@ -201,25 +201,33 @@ class SSMTester(object):
             # If onFailure is Abort or not specified, create an edge to the End node.
             if "onFailure" in step:
                 if step["onFailure"] == "Abort":
-                    graph.append("    {} -> {} [label={}]".format(
+                    graph.append("    {} -> {} [label={} color=\"red\"]".format(
                         step["name"], "End", "onFailure"))
                 # If onFailure is Continue, we look for nextStep,
                 # or save the current step information to be able to create the edge when inspecting the next available step
                 elif step["onFailure"] == "Continue":
                     if "nextStep" in step:
+                        label="onFailure color=\"red\""
+                        if "isCritical" in step:
+                            if step["isCritical"] == "false":
+                                label="onFailure"
                         graph.append("    {} -> {} [label={}]".format(
-                            step["name"], step["nextStep"], "onFailure"))
+                            step["name"], step["nextStep"], label))
                     else:
                         add_edge_from_previous_step = True
-                        label = "onFailure"
+                        label="onFailure color=\"red\""
                         previous_step_name = step["name"]
                 # Lastly, retrieve the next step from onFailure directly
                 else:
+                    label="onFailure color=\"red\""
+                    if "isCritical" in step:
+                        if step["isCritical"] == "false":
+                            label="onFailure"
                     graph.append("    {} -> {} [label={}]".format(
-                        step["name"], step["onFailure"].replace("step:", ""), "onFailure"))
+                        step["name"], step["onFailure"].replace("step:", ""), label))
             else:
                 graph.append("    {} -> {} [label={}]".format(
-                        step["name"], "End", "onFailure"))
+                        step["name"], "End", "onFailure color=\"red\""))
 
         graph.append("}")
 
