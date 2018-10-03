@@ -184,19 +184,34 @@ class SSMTester(object):
                 graph.append("    {} -> {} [label={}]".format(step["name"], "End", "onFailure"))
                 break
 
-            # If nextStep is used in the step, using it to create the edge,
-            # else we save the current step information to be able to create the edge when inspecting the next available step
-            if "nextStep" in step:
-                graph.append("    {} -> {} [label={}]".format(
-                    step["name"], step["nextStep"], "onSuccess"))
-            # When isEnd is true, create an edge to the End node
-            elif "isEnd" in step:
-                if step["isEnd"] == "true":
-                    graph.append("    {} -> {} [label={}]".format(step["name"], "End", "onSuccess"))
+            # If action is aws:branch, checking all choices to visualize each branch
+            if step["action"] == "aws:branch":
+                for choice in step["inputs"]["Choices"]:
+                    next_step = choice["NextStep"]
+                    del choice["NextStep"]
+                    # Removing first and last character from the choice (that removes the curly brackets),
+                    # escaping and adding a new line for each comma)
+                    label = "\"{}\"".format(json.dumps(choice)[1:-1].replace('", "','"\\l"').replace('"','\\"'))
+                    graph.append("    {} -> {} [label={}]".format(
+                        step["name"], next_step, label))
+                
+                if "Default" in step["inputs"]:
+                    graph.append("    {} -> {} [label={}]".format(
+                        step["name"], step["inputs"]["Default"], "Default"))
             else:
-                add_edge_from_previous_step = True
-                label = "onSuccess"
-                previous_step_name = step["name"]
+                # If nextStep is used in the step, using it to create the edge,
+                # else we save the current step information to be able to create the edge when inspecting the next available step
+                if "nextStep" in step:
+                    graph.append("    {} -> {} [label={}]".format(
+                        step["name"], step["nextStep"], "onSuccess"))
+                # When isEnd is true, create an edge to the End node
+                elif "isEnd" in step:
+                    if step["isEnd"] == "true":
+                        graph.append("    {} -> {} [label={}]".format(step["name"], "End", "onSuccess"))
+                else:
+                    add_edge_from_previous_step = True
+                    label = "onSuccess"
+                    previous_step_name = step["name"]
 
             # If onFailure is Abort or not specified, create an edge to the End node.
             if "onFailure" in step:
