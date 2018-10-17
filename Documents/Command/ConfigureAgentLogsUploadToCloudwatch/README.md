@@ -28,6 +28,14 @@ On setting this to true, SSM Agent will start logging to CloudWatchLogs of the A
 
 (Optional) Specify the log group name for logging in CloudWatchLogs. The log group would be created if not already present. If not specified, the logs would be present in the default log group 'SSMAgentLogs'.
 
+### EnableShare
+
+(Optional) Enable sharing of logs with CloudWatch of another AWS Account. The ShareDestination parameter needs to be passed if true.
+
+### ShareDestination
+
+(Optional) Destination in the format 'IAMUserAccessKeyID::IAMUserSecretAccessKey::DestinationLogGroup::DestinationLogStream'. The IAM User should have access to DescribeLogStreams, PutLogEvents on the destination CloudWatchLogs resource. The log group and stream should be present. Parameter will be ignored if EnableShare is false.
+
 ## Details
 
 Executing the document will update the seelog.xml file used by SSM agent with the configurations being passed as parameters. The Agent will pick the latest logging configurations and depending on the parameters may:
@@ -35,5 +43,5 @@ Executing the document will update the seelog.xml file used by SSM agent with th
 - Enable/Disable logging to CloudWatchLogs
 
 ## Dependencies
-For Linux, the XML modification would install XMLStarlet command line utility (under MIT license) if not already installed.
+For Linux, the XML modification would install python if not already installed.
 
