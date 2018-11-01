@@ -1,0 +1,189 @@
+schemaVersion: '2.2'
+description: 'Use this document to run Ansible playbooks on Amazon EC2 managed instances.
+  Specify either playbook YAML text, playbook URL, or URL. If you specify multiple
+  values, precedence order is: url, PlaybookURL, and then playbook. If you specify
+  URL, everything from that point and below in S3 will be synced to the local machine
+  (including any roles and custom modules). Use PlaybookFile for the playbook to run
+  from that URL. Use the extravar parameter to send runtime variables to the Ansible
+  execution. Use the check parameter to perform a dry run of the Ansible execution.
+  The output of the dry run shows the changes that will be made when the playbook
+  is executed. This version also supports zip files via http or s3 URLs. It also supports
+  providing an s3 URL for a directory containing the playbook files. '
+parameters:
+  playbook:
+    type: String
+    description: (Optional) If you don't specify a URL, then you must specify playbook
+      YAML in this field.
+    default: ''
+    displayType: textarea
+  PlaybookURL:
+    type: String
+    description: '(Optional) If you don''t specify playbook YAML, then you must specify
+      a URL where the playbook is stored. This url can refer to a playbook yaml file,
+      an s3 prefix, or an archive (TAR GZIP/BZIP2, Zip) containing all your playbook
+      artifacts. You can specify the URL in the following formats: http://example.com/playbook.yml
+      or s3://examplebucket/playbook.url. You can also specify an s3 URL for a directory
+      containing the playbooks like s3://mybucket/myplabooks/.  For security reasons,
+      you can''t specify a URL with quotes.'
+    default: ''
+    allowedPattern: ^\s*$|^(http|https|s3)://[^']*$
+  PlaybookFile:
+    type: String
+    description: (Optional) The playbook file to run (including relative path), when
+      specifying a playbook bundle like a zip file or an s3 path to a folder in a
+      bucket
+    default: ssm-playbook.yml
+  extravars:
+    type: String
+    description: '(Optional) Additional variables to pass to Ansible at runtime. Enter
+      a space separated list of key/value pairs. For example: color=red flavor=lime'
+    default: SSM=True
+    displayType: textarea
+    allowedPattern: ^$|^\w+\=[^\s|:();&]+(\s\w+\=[^\s|:();&]+)*$
+  WorkingDirectory:
+    type: String
+    description: ' (Optional) Current working directory to use for execution; if not
+      specified, use random temp directory.'
+    allowedPattern: ^\s*$|^[^']+$
+    default: ''
+  check:
+    type: String
+    description: ' (Optional) Use the check parameter to perform a dry run of the
+      Ansible execution.'
+    allowedValues:
+    - 'True'
+    - 'False'
+    default: 'False'
+  verbose:
+    type: String
+    description: ' (Optional) Set the level of verbosity for logging the execution
+      of the playbook. -v for low verbosity, -vvvv for debug level.'
+    allowedValues:
+    - -v
+    - -vv
+    - -vvv
+    - -vvvv
+    default: -v
+mainSteps:
+- action: aws:runShellScript
+  name: runShellScript
+  inputs:
+    runCommand:
+    - '#!/bin/bash'
+    - 'echo "Installing and or updating required tools: Ansible, wget unzip ...."
+      >&2'
+    - 'if cat /etc/issue|grep -i Amazon ; then '
+    - '   sudo pip install ansible --upgrade'
+    - '   sudo pip install awscli --upgrade'
+    - 'elif cat /etc/issue|grep -i Ubuntu ; then '
+    - '   sudo apt-get update'
+    - '   sudo DEBIAN_FRONTEND=noninteractive apt-get install python-pip -y'
+    - '   sudo pip install ansible --upgrade'
+    - '   sudo DEBIAN_FRONTEND=noninteractive apt-get install unzip -y'
+    - '   sudo DEBIAN_FRONTEND=noninteractive apt-get install awscli -y'
+    - 'elif cat /etc/issue|grep -i ''\\S'' ; then '
+    - '   sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm'
+    - '   sudo yum -y update'
+    - '   sudo yum -y install python-pip'
+    - '   sudo pip install ansible --upgrade'
+    - '   sudo yum -y install wget'
+    - '   sudo yum -y install unzip'
+    - '   sudo pip install awscli --upgrade'
+    - else
+    - '   echo "There was a problem installin or updating the required tools for the
+      document. Plesae review the logs and correct the problem" >&2'
+    - '   exit 1'
+    - fi
+    - 'if [ -z "{{WorkingDirectory}}" ] ; then '
+    - '  cd `mktemp -d`'
+    - else
+    - '  mkdir -p {{WorkingDirectory}}; cd {{WorkingDirectory}}'
+    - fi
+    - echo "Running Ansible in `pwd`"
+    - '#if [ -z "${PlaybookFile}" ]'
+    - '#then'
+    - '#   PlaybookFile="ssm-playbook.yml"'
+    - '#else'
+    - PlaybookFile="{{PlaybookFile}}"
+    - '#fi'
+    - if [ -z "{{playbook}}" ] ; then
+    - '   PlaybookURL="{{PlaybookURL}}"'
+    - '   filename=${PlaybookURL##*/}'
+    - '   extension=${filename##*.}'
+    - '   if [[ "${PlaybookURL}" == http* ]]; then'
+    - '   if [[ "{{PlaybookURL}}" == */ ]]; then'
+    - '     echo "http URL is only supportted for compressed files." >&2'
+    - '     exit 1'
+    - '   fi'
+    - '#-------------- added for zip support---------------'
+    - '# If we have an extensionension, assume we have a single file and copy it;
+      otherwise, sync'
+    - '   wget ${PlaybookURL}'
+    - '   if [ -n "$extension" ] ; then'
+    - '     case "$extension" in'
+    - '      zip) unzip ${filename}'
+    - '        ;;'
+    - '      tgz | gz | bz2 | tbz2 | tar) tar xf ${filename}'
+    - '        ;;'
+    - '      yml | yaml) if ! cmp --silent ${filename} ${PlaybookFile};then'
+    - '           cp ${filename} ${PlaybookFile}'
+    - '        fi'
+    - '        ;;'
+    - '      *) echo "Unsupported compression format"'
+    - '        exit 1'
+    - '        ;;'
+    - '     esac'
+    - '  fi'
+    - '#---------------added for zip support --------------'
+    - '  if [ $? -ne 0 ]; then'
+    - '       echo "There was a problem downloading the playbook. Make sure the URL
+      is correct and that the playbook exists." >&2'
+    - '       exit 1'
+    - '   fi'
+    - '  elif [[ "${PlaybookURL}" == s3* ]] ; then'
+    - '# If we have an extensionension, assume we have a single file and copy it;
+      otherwise, sync'
+    - '   if [ -n "$extension" ] ; then'
+    - '     aws s3 cp ${PlaybookURL} .'
+    - '   else'
+    - '     aws s3 sync ${PlaybookURL} .'
+    - '   fi'
+    - '  if [ -n "$extension" ] ; then'
+    - '    case "$extension" in'
+    - '      zip) unzip ${filename}'
+    - '        ;;'
+    - '      tgz | gz | bz2 | tbz2 | tar) tar xf ${filename}'
+    - '        ;;'
+    - '      yml | yaml) if ! cmp --silent ${filename} ${PlaybookFile};then'
+    - '           cp ${filename} ${PlaybookFile}'
+    - '        fi'
+    - '        ;;'
+    - '      *) echo "Unsupported compression format"'
+    - '        exit 1'
+    - '        ;;'
+    - '     esac'
+    - '  fi'
+    - else
+    - '   if [ -z "{{PlaybookURL}}" ] ; then'
+    - '     echo "The playbook URL is not is not set and no playbook YAML was provided.
+      Please provide either a playbook URL or the YAML code for the playbook "'
+    - '     exit 1'
+    - '   fi'
+    - ' fi'
+    - else
+    - ' echo ''{{playbook}}'' > "${PlaybookFile}"'
+    - fi
+    - if [ -d  "${filename%.*}" ] ; then
+    - '   cd ${filename%.*}'
+    - fi
+    - if [ ! -f  "${PlaybookFile}" ] ; then
+    - '   echo "Indicated Playbook File doesn''t exist." >&2'
+    - '   exit 2'
+    - fi
+    - if  [[ "{{check}}" == True ]] ; then
+    - '   ansible-playbook -i "localhost," --check -c local -e "{{extravars}}" "{{verbose}}"
+      "${PlaybookFile}"'
+    - else
+    - '   ansible-playbook -i "localhost," -c local -e "{{extravars}}" "{{verbose}}"
+      "${PlaybookFile}"'
+    - fi
