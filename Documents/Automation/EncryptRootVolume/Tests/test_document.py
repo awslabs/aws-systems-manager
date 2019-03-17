@@ -151,7 +151,7 @@ class DocumentTest(unittest.TestCase):
                         'AutomationAssumeRole': [role_arn]})
             self.assertEqual(ssm_doc.automation_execution_status(ssm_client, execution, False), 'Success')
 
-            LOGGER.info('Encrypting root volume process has been initiated')
+            LOGGER.info('Encryption of root volume has been completed')
 
             response=ssm_doc.automation_execution_status(ssm_client, execution)
             if response == 'Success':
