@@ -22,7 +22,5 @@ Document Steps:
 Python script will:
 #  1. Create a test stack with an instance, a volume and a KMS Key (Customer managed)
 #  2. Execute automation document to replace the root volume with the encrypted one (after a copy operation of the root volume snapshot)
-#  3. Ensure the automation has executed successfully
-#  4. Detach the old volume
-#  5. Attach the new (and encrypted) volume
-#  5. Clean up test stack
+#  3. Ensure the Automation has executed successfull
+#  4. Clean up test stack

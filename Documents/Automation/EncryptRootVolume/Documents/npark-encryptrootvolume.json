@@ -1,17 +1,17 @@
 {
   "schemaVersion": "0.3",
   "description": "Encrypt Root Volume Automation Document",
-  "assumeRole": "{{ AutomationAssumeRole }}",
+  "assumeRole": "{{automationAssumeRole}}",
   "parameters": {
-    "InstanceId": {
+    "instanceId": {
       "description": "(Required) Instance ID of the ec2 instance whose root volume needs to be encrypted",
       "type": "String"
     },
-    "KmsKeyId": {
+    "kmsKeyId": {
       "description": "(Required) Customer KMS key to use during the encryption",
       "type": "String"
     },
-    "AutomationAssumeRole": {
+    "automationAssumeRole": {
       "type": "String",
       "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf.",
       "default": ""
@@ -24,18 +24,23 @@
         "Service": "ec2",
         "Api": "DescribeInstances",
         "InstanceIds": [
-          "{{InstanceId}}"
+          "{{instanceId}}"
         ]
       },
       "outputs": [
         {
-          "Name": "AvailabilityZone",
+          "Name": "availabilityZone",
           "Selector": "$.Reservations[0].Instances[0].Placement.AvailabilityZone",
           "Type": "String"
         },
         {
-          "Name": "RootDeviceName",
+          "Name": "rootDeviceName",
           "Selector": "$.Reservations[0].Instances[0].RootDeviceName",
+          "Type": "String"
+        },
+        {
+          "Name": "instanceState",
+          "Selector": "$.Reservations[0].Instances[0].State.Name",
           "Type": "String"
         }
       ],
@@ -58,21 +63,26 @@
            {
               "Name": "attachment.instance-id",
               "Values": [
-                "{{ InstanceId }}"
+                "{{instanceId}}"
               ]
            },
            {
               "Name": "attachment.device",
               "Values": [
-                "{{ describeInstance.RootDeviceName }}"
+                "{{describeInstance.rootDeviceName}}"
               ]
            }
          ]
        },
        "outputs": [
          {
-            "Name": "RootDeviceVolumeId",
+            "Name": "rootDeviceVolumeId",
             "Selector": "$.Volumes[0].Attachments[0].VolumeId",
+            "Type": "String"
+         },
+         {
+            "Name": "rootDeviceVolumeType",
+            "Selector": "$.Volumes[0].VolumeType",
             "Type": "String"
          },
          {
@@ -89,10 +99,10 @@
       "inputs": {
         "DocumentName": "AWS-CreateSnapshot",
         "RuntimeParameters": {
-          "VolumeId": "{{describeInstanceRootVolume.RootDeviceVolumeId}}"
+          "VolumeId": "{{describeInstanceRootVolume.rootDeviceVolumeId}}"
         }
       },
-      "name": "CreateSnapshot",
+      "name": "createSnapshot",
       "action": "aws:executeAutomation",
       "timeoutSeconds": 3600,
       "onFailure": "Abort"
@@ -102,16 +112,16 @@
       "inputs": {
         "Service": "ec2",
         "Api": "DescribeSnapshots",
-        "SnapshotIds": "{{CreateSnapshot.Output}}"
+        "SnapshotIds": "{{createSnapshot.Output}}"
       },
       "outputs": [
         {
-          "Name": "SNAPSHOTID",
+          "Name": "SnapshotId",
           "Selector": "$.Snapshots[0].SnapshotId",
           "Type": "String"
         }
       ],
-      "name": "extractSnapshotID",
+      "name": "extractSnapshotId",
       "action": "aws:executeAwsApi",
       "timeoutSeconds": 30,
       "onFailure": "Abort"
@@ -121,41 +131,50 @@
       "inputs": {
         "Service": "ec2",
         "Api": "CopySnapshot",
-        "SourceSnapshotId": "{{extractSnapshotID.SNAPSHOTID}}",
+        "SourceSnapshotId": "{{extractSnapshotId.SnapshotId}}",
         "SourceRegion": "{{global:REGION}}",
         "Encrypted": true,
-        "KmsKeyId": "{{KmsKeyId}}",
+        "KmsKeyId": "{{kmsKeyId}}",
         "DestinationRegion": "{{global:REGION}}"
       },
       "outputs": [
         {
-          "Name": "EncryptedSnapshotID",
+          "Name": "encryptedSnapshotId",
           "Selector": "$.SnapshotId",
           "Type": "String"
         }
       ],
-      "name": "CopySnapshot",
+      "name": "copyAndEncryptSnapshot",
       "action": "aws:executeAwsApi",
       "timeoutSeconds": 3600,
       "onFailure": "Abort"
     },
     {
+      "name": "waitForSnapshot",
+      "action": "aws:waitForAwsResourceProperty",
+      "timeoutSeconds": "180",
       "inputs": {
-        "Duration": "PT2M"
-      },
-      "name": "sleep1",
-      "action": "aws:sleep"
+        "Service":"ec2",
+        "Api":"DescribeSnapshots",
+        "SnapshotIds": [
+          "{{copyAndEncryptSnapshot.encryptedSnapshotId}}"
+        ],
+        "PropertySelector": "$.Snapshots[0].State",
+        "DesiredValues": [
+          "completed"
+        ]
+      }
     },
     {
       "maxAttempts": 1,
       "inputs": {
         "Service": "ec2",
         "Api": "CreateVolume",
-        "AvailabilityZone": "{{describeInstance.AvailabilityZone}}",
+        "AvailabilityZone": "{{describeInstance.availabilityZone}}",
         "Encrypted": true,
-        "KmsKeyId": "{{KmsKeyId}}",
-        "SnapshotId": "{{CopySnapshot.EncryptedSnapshotID}}",
-        "VolumeType": "gp2"
+        "KmsKeyId": "{{kmsKeyId}}",
+        "SnapshotId": "{{copyAndEncryptSnapshot.encryptedSnapshotId}}",
+        "VolumeType": "{{describeInstanceRootVolume.rootDeviceVolumeType}}"
       },
       "outputs": [
         {
@@ -164,20 +183,20 @@
           "Type": "String"
         }
       ],
-      "name": "CreateVolume",
+      "name": "createVolume",
       "action": "aws:executeAwsApi",
       "timeoutSeconds": 30,
-      "onFailure": "Abort"
+      "onFailure": "step:handleFailureAndQuit"
     },
     {
       "maxAttempts": 1,
       "inputs": {
         "DocumentName": "AWS-StopEC2Instance",
         "RuntimeParameters": {
-          "InstanceId": "{{InstanceId}}"
+          "InstanceId": "{{instanceId}}"
         }
       },
-      "name": "StopInstance",
+      "name": "stopInstance",
       "action": "aws:executeAutomation",
       "timeoutSeconds": 300,
       "onFailure": "Abort"
@@ -187,10 +206,10 @@
       "inputs": {
         "DocumentName": "AWS-DetachEBSVolume",
         "RuntimeParameters": {
-          "VolumeId": "{{describeInstanceRootVolume.RootDeviceVolumeId}}"
+          "VolumeId": "{{describeInstanceRootVolume.rootDeviceVolumeId}}"
         }
       },
-      "name": "DetachEBSVolume",
+      "name": "detachEBSVolume",
       "action": "aws:executeAutomation",
       "timeoutSeconds": 300,
       "onFailure": "Abort"
@@ -200,18 +219,18 @@
       "inputs": {
         "DocumentName": "AWS-AttachEBSVolume",
         "RuntimeParameters": {
-          "Device": "{{describeInstance.RootDeviceName}}",
-          "InstanceId": "{{InstanceId}}",
-          "VolumeId": "{{CreateVolume.NewRootVolumeID}}"
+          "Device": "{{describeInstance.rootDeviceName}}",
+          "InstanceId": "{{instanceId}}",
+          "VolumeId": "{{createVolume.NewRootVolumeID}}"
         }
       },
-      "name": "AttachNewEBSVolume",
+      "name": "attachNewEBSVolume",
       "action": "aws:executeAutomation",
       "timeoutSeconds": 180,
       "onFailure": "Abort"
     },
     {
-       "name": "ApplyDeleteOnTerminationValue",
+       "name": "applyDeleteOnTerminationValue",
        "action": "aws:executeAwsApi",
        "onFailure": "Abort",
        "timeoutSeconds": 60,
@@ -219,10 +238,10 @@
        "inputs": {
          "Service": "ec2",
          "Api": "ModifyInstanceAttribute",
-         "InstanceId": "{{InstanceId}}",
+         "InstanceId": "{{instanceId}}",
          "BlockDeviceMappings": [
            {
-             "DeviceName": "{{describeInstance.RootDeviceName}}",
+             "DeviceName": "{{describeInstance.rootDeviceName}}",
              "Ebs": {
                "DeleteOnTermination": "{{describeInstanceRootVolume.RootDeviceDeleteOnTermination}}"
              }
@@ -231,18 +250,45 @@
        },
        "isCritical": true
     },
+
     {
-      "maxAttempts": 1,
+      "name": "restoreInstanceInitialState",
+      "action": "aws:changeInstanceState",
+      "onFailure": "Abort",
       "inputs": {
-        "DocumentName": "AWS-StartEC2Instance",
-        "RuntimeParameters": {
-          "InstanceId": "{{InstanceId}}"
-        }
+        "InstanceIds": [
+          "{{instanceId}}"
+        ],
+        "DesiredState": "{{describeInstance.instanceState}}"
       },
-      "name": "StartInstance",
-      "action": "aws:executeAutomation",
-      "timeoutSeconds": 300,
-      "onFailure": "Abort"
+      "isCritical": true,
+      "isEnd": true
+    },
+
+    {
+       "name": "handleFailureAndQuit",
+       "action": "aws:executeAwsApi",
+       "onFailure": "Abort",
+       "timeoutSeconds": 300,
+       "maxAttempts": 1,
+       "inputs": {
+         "Service": "ec2",
+         "Api": "DeleteSnapshot",
+         "SnapshotId": "{{copyAndEncryptSnapshot.encryptedSnapshotId}}"
+       }
+    },
+    {
+       "name": "handleFailureAndQuit2",
+       "action": "aws:executeAwsApi",
+       "onFailure": "Abort",
+       "timeoutSeconds": 300,
+       "maxAttempts": 1,
+       "inputs": {
+         "Service": "ec2",
+         "Api": "DeleteSnapshot",
+         "SnapshotId": "{{extractSnapshotId.SnapshotId}}"
+       },
+      "isEnd":true
     }
   ]
 }

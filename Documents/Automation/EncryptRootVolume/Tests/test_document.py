@@ -74,6 +74,7 @@ iam_client = boto3.client('iam')
 s3_client = boto3.client('s3')
 sns_client = boto3.client('sns')
 sts_client = boto3.client('sts')
+ec2_client = boto3.client('ec2')
 
 
 def verify_role_created(role_arn):
@@ -145,17 +146,45 @@ class DocumentTest(unittest.TestCase):
 
             execution = ssm_doc.execute_automation(
                 params={'instanceId': [instance_id],
-                        'region': [REGION],
-                        'KmsKeyId': [kms_key_id],
-                        'devicename': ['/dev/xvda'],
-                        'AutomationAssumeRole': [role_arn]})
+                        'kmsKeyId': [kms_key_id],
+                        'automationAssumeRole': [role_arn]})
             self.assertEqual(ssm_doc.automation_execution_status(ssm_client, execution, False), 'Success')
 
             LOGGER.info('Encryption of root volume has been completed')
 
             response=ssm_doc.automation_execution_status(ssm_client, execution)
             if response == 'Success':
-                LOGGER.info("All Tests Successful, will clean up now")
+                response = ec2_client.describe_instances(
+                    InstanceIds=[
+                        instance_id
+                    ],
+                    DryRun=False
+                )
+                rootdevicename = response['Reservations'][0]['Instances'][0]['RootDeviceName']
+
+                response = ec2_client.describe_volumes(
+                    Filters=[
+                        {
+                            'Name': 'attachment.instance-id',
+                            'Values': [
+                                instance_id
+                            ],
+                        },
+                        {
+                            'Name': 'attachment.device',
+                            'Values': [
+                                rootdevicename
+                            ],
+                        },
+                    ],
+                    DryRun=False
+                )
+                is_encrypted=response['Volumes'][0]['Encrypted']
+                self.assertEqual(is_encrypted, True)
+                if is_encrypted:
+                    LOGGER.info("All Tests Successful, will clean up now")
+                else:
+                    LOGGER.info("FAIL: root volume is NOT encrypted, will clean up now")
 
         finally:
             try:
