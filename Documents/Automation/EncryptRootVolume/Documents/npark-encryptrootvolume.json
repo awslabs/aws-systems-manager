@@ -16,14 +16,14 @@
       "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf.",
       "default": ""
     },
-    "maxWaitForCreateSnapshot": {
+    "maxWaitInSecondsForCreateSnapshot": {
       "type": "Integer",
-      "description": "(Optional) maximum wait time for creating snapshot of the root volume (prior to encryption). Default maximum wait time is 30 minutes (1800 seconds)",
+      "description": "(Optional) Maximum wait time for creating snapshot of the root volume (prior to encryption). Default maximum wait time is 30 minutes (1800 seconds)",
       "default": 1800
     },
-    "maxWaitForSnapshotWithEncryption": {
+    "maxWaitInSecondsForSnapshotWithEncryption": {
       "type": "Integer",
-      "description": "(Optional) maximum wait time for copying snapshot (with encryption) of the root volume. Default maximum wait time is 30 minutes (1800 seconds)",
+      "description": "(Optional) Maximum wait time for copying snapshot (with encryption) of the root volume. Default maximum wait time is 30 minutes (1800 seconds)",
       "default": 1800
     }
   },
@@ -355,5 +355,9 @@
       }
     }
 
+  ],
+  "outputs":[
+    "describeInstanceRootVolume.rootDeviceVolumeId",
+    "createVolume.NewRootVolumeID"
   ]
 }
