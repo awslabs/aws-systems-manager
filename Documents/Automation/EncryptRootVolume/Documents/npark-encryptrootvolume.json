@@ -112,7 +112,7 @@
       "name": "extractSnapshotId",
       "action": "aws:executeAwsApi",
       "timeoutSeconds": 30,
-      "onFailure": "Abort",
+      "onFailure": "step:deleteRootVolumeSnapshot",
       "maxAttempts": 1,
       "inputs": {
         "Service": "ec2",
@@ -156,7 +156,7 @@
       "name": "waitForSnapshot",
       "action": "aws:waitForAwsResourceProperty",
       "timeoutSeconds": 1800,
-      "onFailure": "step:deleteRootVolumeSnapshot",
+      "onFailure": "step:deleteEncryptedRootVolumeSnapshot",
       "inputs": {
         "Service": "ec2",
         "Api": "DescribeSnapshots",
@@ -264,7 +264,7 @@
     {
       "name": "restoreInstanceInitialState",
       "action": "aws:changeInstanceState",
-      "onFailure": "Abort",
+      "onFailure": "Continue",
       "isCritical": true,
       "isEnd": true,
       "inputs": {
@@ -279,7 +279,7 @@
       "name": "detachNewVolume",
       "action": "aws:executeAutomation",
       "timeoutSeconds": 300,
-      "onFailure": "Abort",
+      "onFailure": "Continue",
       "maxAttempts": 1,
       "inputs": {
         "DocumentName": "AWS-DetachEBSVolume",
@@ -293,7 +293,7 @@
       "name": "attachOriginalVolume",
       "action": "aws:executeAutomation",
       "timeoutSeconds": 180,
-      "onFailure": "Abort",
+      "onFailure": "Continue",
       "maxAttempts": 1,
       "inputs": {
         "DocumentName": "AWS-AttachEBSVolume",
@@ -309,7 +309,7 @@
       "name": "deleteNewEncryptedVolume",
       "action": "aws:executeAwsApi",
       "timeoutSeconds": 300,
-      "onFailure": "Abort",
+      "onFailure": "Continue",
       "maxAttempts": 1,
       "inputs": {
         "Service": "ec2",
@@ -321,7 +321,7 @@
     {
       "name": "deleteEncryptedRootVolumeSnapshot",
       "action": "aws:executeAwsApi",
-      "onFailure": "Abort",
+      "onFailure": "Continue",
       "timeoutSeconds": 300,
       "maxAttempts": 1,
       "inputs": {
@@ -334,7 +334,7 @@
     {
       "name": "deleteRootVolumeSnapshot",
       "action": "aws:executeAwsApi",
-      "onFailure": "Abort",
+      "onFailure": "Continue",
       "timeoutSeconds": 300,
       "maxAttempts": 1,
       "nextStep": "restoreInstanceInitialState",
