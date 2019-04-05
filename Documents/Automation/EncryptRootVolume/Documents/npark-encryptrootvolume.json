@@ -23,6 +23,7 @@
       "action": "aws:executeAwsApi",
       "timeoutSeconds": 30,
       "onFailure": "Abort",
+      "nextStep": "describeInstanceRootVolume",
       "maxAttempts": 1,
       "inputs": {
         "Service": "ec2",
@@ -54,6 +55,7 @@
       "name": "describeInstanceRootVolume",
       "action": "aws:executeAwsApi",
       "onFailure": "Abort",
+      "nextStep": "createSnapshot",
       "timeoutSeconds": 60,
       "maxAttempts": 10,
       "isCritical": true,
@@ -99,6 +101,7 @@
       "action": "aws:executeAutomation",
       "timeoutSeconds": 1800,
       "onFailure": "Abort",
+      "nextStep": "extractSnapshotId",
       "maxAttempts": 3,
       "inputs": {
         "DocumentName": "AWS-CreateSnapshot",
@@ -113,6 +116,7 @@
       "action": "aws:executeAwsApi",
       "timeoutSeconds": 30,
       "onFailure": "step:deleteRootVolumeSnapshot",
+      "nextStep": "copyAndEncryptSnapshot",
       "maxAttempts": 1,
       "inputs": {
         "Service": "ec2",
@@ -132,7 +136,8 @@
       "name": "copyAndEncryptSnapshot",
       "action": "aws:executeAwsApi",
       "timeoutSeconds": 3600,
-      "onFailure": "step:deleteRootVolumeSnapshot",
+      "onFailure": "step:deleteEncryptedRootVolumeSnapshot",
+      "nextStep": "waitForSnapshot",
       "maxAttempts": 1,
       "inputs": {
         "Service": "ec2",
@@ -157,6 +162,7 @@
       "action": "aws:waitForAwsResourceProperty",
       "timeoutSeconds": 1800,
       "onFailure": "step:deleteEncryptedRootVolumeSnapshot",
+      "nextStep": "createVolume",
       "inputs": {
         "Service": "ec2",
         "Api": "DescribeSnapshots",
@@ -174,7 +180,8 @@
       "name": "createVolume",
       "action": "aws:executeAwsApi",
       "timeoutSeconds": 30,
-      "onFailure": "step:deleteEncryptedRootVolumeSnapshot",
+      "onFailure": "step:deleteNewEncryptedVolume",
+      "nextStep": "stopInstance",
       "maxAttempts": 1,
       "inputs": {
         "Service": "ec2",
@@ -198,7 +205,8 @@
       "name": "stopInstance",
       "action": "aws:executeAutomation",
       "timeoutSeconds": 300,
-      "onFailure": "step:deleteEncryptedRootVolumeSnapshot",
+      "onFailure": "step:deleteNewEncryptedVolume",
+      "nextStep": "detachEBSVolume",
       "maxAttempts": 1,
       "inputs": {
         "DocumentName": "AWS-StopEC2Instance",
@@ -212,7 +220,8 @@
       "name": "detachEBSVolume",
       "action": "aws:executeAutomation",
       "timeoutSeconds": 300,
-      "onFailure": "step:deleteEncryptedRootVolumeSnapshot",
+      "onFailure": "step:attachOriginalVolume",
+      "nextStep": "attachNewEBSVolume",
       "maxAttempts": 1,
       "inputs": {
         "DocumentName": "AWS-DetachEBSVolume",
@@ -226,7 +235,8 @@
       "name": "attachNewEBSVolume",
       "action": "aws:executeAutomation",
       "timeoutSeconds": 180,
-      "onFailure": "step:attachOriginalVolume",
+      "onFailure": "step:detachNewVolume",
+      "nextStep": "applyDeleteOnTerminationValue",
       "maxAttempts": 1,
       "inputs": {
         "DocumentName": "AWS-AttachEBSVolume",
@@ -242,10 +252,10 @@
       "name": "applyDeleteOnTerminationValue",
       "action": "aws:executeAwsApi",
       "onFailure": "step:detachNewVolume",
+      "nextStep": "restoreInstanceInitialState",
       "timeoutSeconds": 60,
       "maxAttempts": 10,
       "isCritical": true,
-      "nextStep": "deleteRootVolumeSnapshot",
       "inputs": {
         "Service": "ec2",
         "Api": "ModifyInstanceAttribute",
@@ -264,7 +274,7 @@
     {
       "name": "restoreInstanceInitialState",
       "action": "aws:changeInstanceState",
-      "onFailure": "Continue",
+      "onFailure": "Abort",
       "isCritical": true,
       "isEnd": true,
       "inputs": {
@@ -280,6 +290,7 @@
       "action": "aws:executeAutomation",
       "timeoutSeconds": 300,
       "onFailure": "Continue",
+      "nextStep": "attachOriginalVolume",
       "maxAttempts": 1,
       "inputs": {
         "DocumentName": "AWS-DetachEBSVolume",
@@ -294,6 +305,7 @@
       "action": "aws:executeAutomation",
       "timeoutSeconds": 180,
       "onFailure": "Continue",
+      "nextStep": "deleteNewEncryptedVolume",
       "maxAttempts": 1,
       "inputs": {
         "DocumentName": "AWS-AttachEBSVolume",
@@ -304,12 +316,13 @@
         }
       }
     },
-    
+
     {
       "name": "deleteNewEncryptedVolume",
       "action": "aws:executeAwsApi",
       "timeoutSeconds": 300,
       "onFailure": "Continue",
+      "nextStep": "deleteEncryptedRootVolumeSnapshot",
       "maxAttempts": 1,
       "inputs": {
         "Service": "ec2",
@@ -322,6 +335,7 @@
       "name": "deleteEncryptedRootVolumeSnapshot",
       "action": "aws:executeAwsApi",
       "onFailure": "Continue",
+      "nextStep": "deleteRootVolumeSnapshot",
       "timeoutSeconds": 300,
       "maxAttempts": 1,
       "inputs": {
@@ -335,9 +349,9 @@
       "name": "deleteRootVolumeSnapshot",
       "action": "aws:executeAwsApi",
       "onFailure": "Continue",
+      "nextStep": "restoreInstanceInitialState",
       "timeoutSeconds": 300,
       "maxAttempts": 1,
-      "nextStep": "restoreInstanceInitialState",
       "inputs": {
         "Service": "ec2",
         "Api": "DeleteSnapshot",
