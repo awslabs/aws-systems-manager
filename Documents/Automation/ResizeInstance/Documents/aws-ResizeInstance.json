@@ -47,6 +47,7 @@
     {
       "name": "stopInstances",
       "action": "aws:changeInstanceState",
+      "onFailure": "step:deleteCloudFormationTemplate",
       "inputs": {
         "InstanceIds": ["{{InstanceId}}"],
         "DesiredState": "stopped"
@@ -55,6 +56,7 @@
     {
       "name": "resizeInstance",
       "action": "aws:invokeLambdaFunction",
+      "onFailure": "step:deleteCloudFormationTemplate",
       "inputs": {
         "FunctionName": "ResizeInstanceLambda-{{automation:EXECUTION_ID}}",
         "Payload":  "{\"InstanceId\": \"{{InstanceId}}\", \"InstanceType\": \"{{InstanceType}}\"}"
@@ -63,6 +65,7 @@
     {
       "name": "startInstances",
       "action": "aws:changeInstanceState",
+      "onFailure": "step:deleteCloudFormationTemplate",
       "inputs": {
         "InstanceIds": ["{{InstanceId}}"],
         "DesiredState": "running"
