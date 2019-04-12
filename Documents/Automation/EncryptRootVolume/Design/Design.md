@@ -9,13 +9,106 @@ Encrypts the root volume of an EC2 instance.  This will be a replace operation a
 Refer to schema.json
 
 Document Steps:
-1. aws:npark-encryptrootvolume - Execute CloudFormation Template to attach the volume.
+1. Create automation service role  
+   * Create a role with following policies:  
+     •	AmazonEC2FullAccess (AWS Managed)  
+     •	AmazonSSMAutomationRole (AWS Managed)  
+     •	AWSKeyManagementServicePowerUser (AWS Managed)  
+     In addition, following inline policies must be created and attached
+```json
+     •	createlambda (inline)  
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": [
+                        "lambda:CreateFunction",
+                        "lambda:GetFunction",
+                        "lambda:DeleteFunction"
+                    ],
+                    "Resource": "*",
+                    "Effect": "Allow"
+                },
+                {
+                    "Action": [
+                        "iam:GetRole",
+                        "iam:PassRole",
+                        "iam:DeleteRolePolicy",
+                        "iam:CreateRole",
+                        "iam:DeleteRole",
+                        "iam:PutRolePolicy"
+                    ],
+                    "Resource": "arn:aws:iam::*:role/*",
+                    "Effect": "Allow"
+                }
+            ]
+        }
+```
+
+```json
+     •  ebsvolumepermission (inline)  
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": [
+                        "ec2:AttachVolume",
+                        "ec2:DetachVolume"
+                    ],
+                    "Resource": "arn:aws:ec2:*:*:instance/*",
+                    "Effect": "Allow"
+                },
+                {
+                    "Action": [
+                        "ec2:AttachVolume",
+                        "ec2:DetachVolume"
+                    ],
+                    "Resource": "arn:aws:ec2:*:*:volume/*",
+                    "Effect": "Allow"
+                }
+            ]
+        }
+```  
+
+```json
+     •  invokeLambdaFunction  (inline)  
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": "lambda:InvokeFunction",
+                    "Resource": [
+                        "arn:aws:lambda:*:*:function:*"
+                    ],
+                    "Effect": "Allow"
+                }
+            ]
+        }
+```  
+
+```json
+     •	kmsaccess (inline)  
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": [
+                        "kms:*"
+                    ],
+                    "Resource": [
+                        "*"
+                    ],
+                    "Effect": "Allow"
+                }
+            ]
+        }
+```  
+
+2. aws:npark-encryptrootvolume - Execute CloudFormation Template to attach the volume.
    * Parameters:
        * instanceId: (Required) Instance ID of the ec2 instance whose root volume needs to be encrypted
-       * region: (Required) Region in which the ec2 instance belong
        * KmsKeyId: (Required) Customer KMS key to use during the encryption
-       * devicename: (Optional) Device name of the root volume.  Defaults to /dev/sda1
-       * AutomationAssumeRole: (Optional) The ARN of the role that allows Automation to perform the actions on your behalf
+       * AutomationAssumeRole: (Optional) The ARN of the role that allows Automation to perform the actions on your behalf. See step 1 for details.
 
 ## Test script
 
