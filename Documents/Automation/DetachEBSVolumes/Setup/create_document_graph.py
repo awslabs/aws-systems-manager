@@ -14,25 +14,24 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
-TARGET_DIR = "./Output"
+import os
+import sys
 
-documents: targetdir createdocuments
-	@echo "Done making documents"
+DOC_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+REPO_ROOT = os.path.dirname(DOC_DIR)
 
-graph: targetdir createdocuments
-	python ./Setup/create_document_graph.py > ./Output/aws-DetachEBSVolume.dot
-	@echo "Done making document graph"
+# Import shared testing code
+sys.path.append(os.path.join(REPO_ROOT, 'Testing'))
+import ssm_testing  # noqa pylint: disable=import-error,wrong-import-position
 
-targetdir:
-	@echo "Making $(TARGET_DIR)"
-	mkdir -p ./Output
 
-createdocuments:
-	python ./Setup/create_document.py > ./Output/aws-DetachEBSVolume.json
+def process():
+    ssm_doc_name = "aws-DetachEBSVolume"
+    print(ssm_testing.SSMTester.convert_document_to_dot_graph(doc_filename=os.path.join(DOC_DIR,
+                                                                   'Output',
+                                                                   ('{}.json'.format(ssm_doc_name)))))
 
-test: documents
-	python -m unittest discover Tests
 
-clean:
-	@echo "Removing $(TARGET_DIR)"
-	@rm -rf ./Output
+if __name__ == '__main__':
+    process()
+
