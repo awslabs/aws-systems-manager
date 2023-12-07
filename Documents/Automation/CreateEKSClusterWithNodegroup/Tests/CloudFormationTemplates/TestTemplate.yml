@@ -1,0 +1,324 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for AWS-CrateEKSClusterWithNodegroup runbook
+Parameters:
+  #####################
+  # Naming Parameters #
+  #####################
+  ResourcePrefix:
+    Default: test1
+    Description: Prefix that will be used when naming resources
+    Type: String
+  ###################################
+  # AutomationAssumeRole Parameters #
+  ###################################
+  UserARN:
+    Description: User ARN
+    Type: String
+    Default: ""
+  Stage:
+    Type: String
+    Default: ""
+  #######################
+  # Resource Parameters #
+  #######################
+  VpcCidrBlock:
+    Description: IP CIDR block to use for VPC resources
+    Type: String
+    Default: 10.0.0.0/25
+Conditions:
+  ###################################
+  # AutomationAssumeRole Conditions #
+  ###################################
+  GammaStage: !Equals [!Ref Stage, gamma]
+  GammaIad: !And [Condition: GammaStage, !Equals [us-east-1, !Ref AWS::Region]]
+  PreGammaStage: !Equals [!Ref Stage, pre-gamma]
+  PreGammaIad: !And [Condition: PreGammaStage, !Equals [us-east-1, !Ref AWS::Region]]
+  ChinaPartition: !Equals [!Ref AWS::Partition, "aws-cn"]
+Resources:
+  ##################################
+  # AutomationAssumeRole Resources #
+  ##################################
+  AutomationAssumeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                -
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS: !Ref UserARN
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: Automation-Policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: SSMAutomationPermissions
+                Effect: Allow
+                Action:
+                  - ssm:StartAutomationExecution
+                  - ssm:GetAutomationExecution
+                Resource: "*"
+              - Sid: RunbookPermissions
+                Effect: Allow
+                Action:
+                  - ec2:DescribeSubnets
+                  - eks:CreateCluster
+                  - eks:CreateNodegroup
+                  - eks:DescribeCluster
+                  - eks:DescribeNodegroup
+                  - iam:CreateServiceLinkedRole
+                  - iam:GetRole
+                  - iam:ListAttachedRolePolicies
+                  - iam:PassRole
+                Resource: "*"
+
+  ########################
+  # Networking Resources #
+  ########################
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidrBlock
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.0.0.0/26
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref VPC
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: 10.0.0.64/26
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref VPC
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  RouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet1
+
+  RouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet2
+
+  EndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for private subnet VPC Endpoints
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref VpcCidrBlock
+
+  S3ApiEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName:
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+      VpcId: !Ref VPC
+
+  ECRApiEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName:
+        Fn::If:
+          - ChinaPartition
+          -
+          -
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt EndpointSecurityGroup.GroupId
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      VpcId: !Ref VPC
+
+  ECRDockerEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName:
+        Fn::If:
+          - ChinaPartition
+          -
+          -
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt EndpointSecurityGroup.GroupId
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      VpcId: !Ref VPC
+
+  EC2Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName:
+        Fn::If:
+          - ChinaPartition
+          -
+          -
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt EndpointSecurityGroup.GroupId
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      VpcId: !Ref VPC
+
+  LogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt EndpointSecurityGroup.GroupId
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      VpcId: !Ref VPC
+
+  STSEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName:
+        Fn::If:
+          - ChinaPartition
+          -
+          -
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt EndpointSecurityGroup.GroupId
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      VpcId: !Ref VPC
+
+  ControlPlaneSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EKS Control Plane security group for communication with worker nodes
+      VpcId: !Ref VPC
+
+  #######################
+  #  Runbook Resources  #
+  #######################
+  EKSClusterRole:
+    Metadata:
+      TestScenario: 01, 02, 03
+      RunbookExecutionStatus: Success, Failed, Failed
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        -
+
+  EKSNodeRole:
+    Metadata:
+      TestScenario: 01, 02
+      RunbookExecutionStatus: Success, Failed
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEKS_CNI_Policy
+
+  EKSCluster:
+    Metadata:
+      TestScenario: 02
+      RunbookExecutionStatus: Failed
+    DependsOn:
+      - S3ApiEndpoint
+      - ECRApiEndpoint
+      - ECRDockerEndpoint
+      - EC2Endpoint
+      - LogsEndpoint
+      - STSEndpoint
+    Type: AWS::EKS::Cluster
+    Properties:
+      ResourcesVpcConfig:
+        EndpointPrivateAccess: True
+        EndpointPublicAccess: False
+        SecurityGroupIds:
+          - !GetAtt ControlPlaneSecurityGroup.GroupId
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      RoleArn: !GetAtt EKSClusterRole.Arn
+
+Outputs:
+  ################################
+  # AutomationAssumeRole Outputs #
+  ################################
+  AutomationAssumeRoleName:
+    Description: Automation Assume Role Name
+    Value: !Ref AutomationAssumeRole
+  AutomationAssumeRoleArn:
+    Description: Automation Assume Role ARN
+    Value: !GetAtt AutomationAssumeRole.Arn
+
+  #######################
+  #  Runbook Resources  #
+  #######################
+  ClusterRoleArn:
+    Description: |-
+      The Amazon Resource Name (ARN) of the IAM role that provides permissions for the Kubernetes control plane to make
+      calls to AWS API operations on your behalf.
+    Value: !GetAtt EKSClusterRole.Arn
+  NodegroupRoleArn:
+    Description: The Amazon Resource Name (ARN) of the IAM role to associate with your node group.
+    Value: !GetAtt EKSNodeRole.Arn
+  EKSClusterName:
+    Description: The name of the Amazon EKS Cluster provisioned
+    Value: !Ref EKSCluster
+
+  ########################
+  # Networking Resources #
+  ########################
+  PrivateSubnet1Id:
+    Description: Subnet ID of the first private subnet created.
+    Value: !Ref PrivateSubnet1
+  PrivateSubnet2Id:
+    Description: Subnet ID of the second private subnet created.
+    Value: !Ref PrivateSubnet2

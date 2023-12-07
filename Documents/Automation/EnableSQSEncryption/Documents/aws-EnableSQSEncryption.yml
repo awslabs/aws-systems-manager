@@ -1,0 +1,147 @@
+#
+# Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+
+schemaVersion: "0.3"
+description: |
+  # Document name - AWS-EnableSQSEncryption
+
+  ## What does this document do?
+  The AWS-EnableSQSEncryption runbook enables encryption at rest for an existing Amazon Simple Queue Service (SQS) queue 
+  using the [SetQueueAttributes](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SetQueueAttributes.html) API. 
+  An Amazon Simple Queue Service (SQS) queue can be encrypted with SQS managed encryption keys (SSE-SQS) or with keys managed by 
+  in the AWS Key-Management Service (SSE-KMS). The KMS key that you assign to your queue must have a key policy that includes 
+  permissions for all principals that are authorized to use the queue. With SSE enabled, anonymous SendMessage and ReceiveMessage 
+  requests to the encrypted queue will be rejected.
+
+  ## Input Parameters
+  * AutomationAssumeRole: (Optional) The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role that 
+    allows Systems Manager Automation to perform the actions on your behalf. If no role is specified, Systems Manager Automation 
+    uses the permissions of the user that starts this runbook.
+    * Default: ""
+  * QueueUrl: (Required) The URL of the Amazon Simple Queue Service (SQS) queue whose attributes are set.
+  * KmsKeyId: (Optional) The GUID for the customer-managed AWS KMS key to use for encryption. This value can be a
+    globally unique identifier, a fully specified Amazon Resource Name (ARN) to either an alias or a key, or an alias
+    name prefixed by "alias/". You can also use a master key owned by SQS Queues by specifying
+    the alias aws/sqs.
+    * Default: ""
+  * KmsDataKeyReusePeriodSeconds: (Optional) The length in time, in seconds for a minimum of 60 seconds and a 
+    max of 86400 seconds, for which an Amazon Simple Queue Service (SQS) queue can reuse a data key to encrypt or 
+    decrypt messages before calling KMS again.
+    * Default: "300"
+
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  AutomationAssumeRole:
+    type: AWS::IAM::Role::Arn
+    description: |
+      (Optional) The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role 
+      that allows Systems Manager Automation to perform the actions on your behalf. If no role is 
+      specified, Systems Manager Automation uses the permissions of the user that starts this runbook.
+    default: ""
+  QueueUrl:
+    type: String
+    description: (Required) The URL of the Amazon Simple Queue Service (SQS) queue whose attributes are set.
+    allowedPattern: >-
+      https?:\/\/(sqs\.)?[-a-zA-Z0-9@:%.\+~#=]{2,256}\.[a-z]{2,4}\b([-a-zA-Z0-9@:%\+_.-~#?&//=]{1,1024}$)
+  KmsKeyId:
+    type: String
+    description: |
+      (Optional) The GUID for the customer-managed AWS   KMS key to use for encryption. This value can be a
+      globally unique identifier, a fully specified Amazon Resource Name (ARN) to either an alias or a key, or an alias
+      name prefixed by "alias/". You can also use a master key owned by SQS Queues by specifying the alias aws/sqs.
+    default: ""
+    allowedPattern: ^$|^[a-z0-9-]{1,2048}$|^mrk-[a-z0-9]{1,2044}$|^alias\/.{1,250}$|^arn:aws[a-z0-9-]*:kms:[a-z0-9-]+:\d{12}:key\/[a-z0-9-]{1,1992}$|^arn:aws[a-z0-9-]*:kms:[a-z0-9-]+:\d{12}:key\/mrk-[a-z0-9]{1,1988}$|^arn:aws[a-z0-9-]*:kms:[a-z0-9-]+:\d{12}:alias\/.{1,1990}$
+  KmsDataKeyReusePeriodSeconds:
+    type: String
+    description: |
+       (Optional) The length in time, in seconds for a minimum of 60 seconds and a max of 86400 seconds, for which an 
+       Amazon Simple Queue Service (SQS) queue can reuse a data key to encrypt or decrypt messages before calling KMS again.
+    default: "300"
+    allowedPattern: ^(0|[6-9]\d|[1-9]\d{2}|[1-9]\d{3}|[1-7]\d{4}|8[0-5]\d{3}|86[0-3]\d{2}|86400)$
+
+mainSteps:
+  - name: SelectKeyType
+    description: |
+      ## SelectKeyType
+      This step determines if the user will use the default SSE-SQS or SSE-KMS.
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: PutAttributeSseKms
+          Not:
+            Variable: "{{ KmsKeyId }}"
+            StringEquals: ""
+      Default: PutAttributeSseSqs
+
+  - name: PutAttributeSseKms
+    description: |
+      ## PutAttributeSseKms
+      This step sets the Amazon Simple Queue Service (SQS) queue attribute with a user managed KMS Key.
+    action: aws:executeAwsApi
+    timeoutSeconds: 600
+    inputs:
+      Service: SQS
+      Api: SetQueueAttributes
+      QueueUrl: "{{ QueueUrl }}"
+      Attributes:
+        KmsDataKeyReusePeriodSeconds: "{{ KmsDataKeyReusePeriodSeconds }}"
+        KmsMasterKeyId: "{{ KmsKeyId }}"
+    nextStep: VerifySqsEncryptionKms
+
+  - name: PutAttributeSseSqs
+    description: |
+      ## PutAttributeSseSqs
+      This step sets the Amazon Simple Queue Service (SQS) queue attribute with SSE-SQS.
+    action: aws:executeAwsApi
+    timeoutSeconds: 600
+    inputs:
+      Service: sqs
+      Api: SetQueueAttributes
+      QueueUrl: "{{ QueueUrl }}"
+      Attributes:
+        SqsManagedSseEnabled: "True"
+    nextStep: VerifySqsEncryptionDefault
+
+  - name: VerifySqsEncryptionKms
+    description: |
+      ## VerifySqsEncryptionKms
+      This step verifies that the KMS Keys have been enabled on the Amazon Simple Queue Service (SQS) queue.
+    action: aws:assertAwsResourceProperty
+    inputs:
+      Service: sqs
+      Api: GetQueueAttributes
+      QueueUrl: "{{ QueueUrl }}"
+      AttributeNames:
+        - KmsMasterKeyId
+      PropertySelector: $.Attributes.KmsMasterKeyId
+      DesiredValues:
+        - "{{ KmsKeyId }}"
+    isEnd: true
+
+  - name: VerifySqsEncryptionDefault
+    description: |
+      ## VerifySqsEncryptionDefault This step verifies that the SQS Managed Keys have been enabled on the Amazon Simple Queue Service (SQS) queue.
+    action: aws:assertAwsResourceProperty
+    inputs:
+      Service: sqs
+      Api: GetQueueAttributes
+      QueueUrl: "{{ QueueUrl }}"
+      AttributeNames:
+        - SqsManagedSseEnabled
+      PropertySelector: $.Attributes.SqsManagedSseEnabled
+      DesiredValues:
+        - "true"
