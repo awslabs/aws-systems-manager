@@ -1,0 +1,291 @@
+#
+# Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for EnableS3BucketKeys runbook
+Parameters:
+  #####################
+  # Naming Parameters #
+  #####################
+  RunbookShortName:
+    Default: enable-s3-bucket-keys
+    Description: Short name for runbook (without 'aws') that will be used when naming resources
+    Type: String
+  ###################################
+  # AutomationAssumeRole Parameters #
+  ###################################
+  UserARN:
+    Description: User ARN
+    Type: String
+    Default:
+  Stage:
+    Type: String
+    Default: ""
+
+Conditions:
+  ###################################
+  # AutomationAssumeRole Conditions #
+  ###################################
+  GammaStage: !Equals [!Ref Stage, gamma]
+  GammaIad: !And [Condition: GammaStage, !Equals [us-east-1, !Ref AWS::Region]]
+  PreGammaStage: !Equals [!Ref Stage, pre-gamma]
+  PreGammaIad: !And [Condition: PreGammaStage, !Equals [us-east-1, !Ref AWS::Region]]
+
+Resources:
+  ##################################
+  # AutomationAssumeRole Resources #
+  ##################################
+  AutomationAssumeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                -
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS: !Ref UserARN
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: Automation-Policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: SSMAutomationPermissions
+                Effect: Allow
+                Action:
+                  - ssm:StartAutomationExecution
+                  - ssm:GetAutomationExecution
+                Resource: "*"
+              - Sid: RunbookPermissions
+                Effect: Allow
+                Action:
+                  - s3:PutEncryptionConfiguration
+                  - s3:GetEncryptionConfiguration
+                Resource: "*"
+
+  #######################
+  #  Runbook Resources  #
+  #######################
+  KmsKeyForEncryption:
+    DeletionPolicy: Delete
+    Type: AWS::KMS::Key
+    Properties:
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action: kms:*
+            Resource: "*"
+
+  KmsKeyAliasForEncryption:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub alias/${RunbookShortName}
+      TargetKeyId: !Ref KmsKeyForEncryption
+
+  KmsKeyForSecondEncryption:
+    DeletionPolicy: Delete
+    Type: AWS::KMS::Key
+    Properties:
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action: kms:*
+            Resource: "*"
+
+  S3BucketWithoutBucketKeysToKMS:
+    Metadata:
+      TestScenario: 01a, 08, 10
+      RunbookExecutionStatus: Success, Invalid, Invalid
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+
+  S3BucketWithoutBucketKeysToKMSArn:
+    Metadata:
+      TestScenario: 01b
+      RunbookExecutionStatus: Success
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+
+  S3BucketWithoutBucketKeysToKMSAlias:
+    Metadata:
+      TestScenario: 01c
+      RunbookExecutionStatus: Success
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+
+  S3BucketWithoutBucketKeysToS3:
+    Metadata:
+      TestScenario: 02
+      RunbookExecutionStatus: Success
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+
+  S3BucketWithKMSBucketKeysToS3:
+    Metadata:
+      TestScenario: 03
+      RunbookExecutionStatus: Success
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref KmsKeyForEncryption
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  S3BucketWithS3BucketKeysToKMS:
+    Metadata:
+      TestScenario: 04
+      RunbookExecutionStatus: Success
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  S3BucketWithS3BucketKeysToS3:
+    Metadata:
+      TestScenario: 05
+      RunbookExecutionStatus: Success
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  S3BucketWithKMSBucketKeysToKMS:
+    Metadata:
+      TestScenario: 06
+      RunbookExecutionStatus: Success
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref KmsKeyForEncryption
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+
+Outputs:
+  ################################
+  # AutomationAssumeRole Outputs #
+  ################################
+  AutomationAssumeRoleName:
+    Description: Automation Assume Role Name
+    Value: !Ref AutomationAssumeRole
+  AutomationAssumeRoleArn:
+    Description: Automation Assume Role ARN
+    Value: !GetAtt AutomationAssumeRole.Arn
+
+  #######################
+  #  Runbook Resources  #
+  #######################
+  KmsKeyForEncryptionId:
+    Description: KMS Key that will be used for encryption with SSEAlgorithm of aws:kms.
+    Value: !Ref KmsKeyForEncryption
+
+  KmsKeyForEncryptionArn:
+    Description: KMS Key that will be used for encryption with SSEAlgorithm of aws:kms.
+    Value: !GetAtt KmsKeyForEncryption.Arn
+
+  KmsKeyAliasForEncryptionId:
+    Description: Alias for KMS Key that will be used for encryption with SSEAlgorithm of aws:kms.
+    Value: !Ref KmsKeyAliasForEncryption
+
+  KmsKeyForSecondEncryptionId:
+    Description: KMS Key that will be used for encryption with SSEAlgorithm of aws:kms.
+    Value: !Ref KmsKeyForSecondEncryption
+
+  S3BucketWithoutBucketKeysToKMSId:
+    Description: S3 Bucket without Bucket Keys, runbook will add SSE-KMS Bucket Keys.
+    Value: !Ref S3BucketWithoutBucketKeysToKMS
+
+  S3BucketWithoutBucketKeysToKMSArnId:
+    Description: S3 Bucket without Bucket Keys, runbook will add SSE-KMS Bucket Keys via KMS ARN.
+    Value: !Ref S3BucketWithoutBucketKeysToKMSArn
+
+  S3BucketWithoutBucketKeysToKMSAliasId:
+    Description: S3 Bucket without Bucket Keys, runbook will add SSE-KMS Bucket Keys via KMS Alias.
+    Value: !Ref S3BucketWithoutBucketKeysToKMSAlias
+
+  S3BucketWithoutBucketKeysToS3Id:
+    Description: S3 Bucket without Bucket Keys, runbook will add SSE-S3 Bucket Keys.
+    Value: !Ref S3BucketWithoutBucketKeysToS3
+
+  S3BucketWithKMSBucketKeysToS3Id:
+    Description: S3 Bucket with SSE-KMS Bucket Keys, runbook will switch it to SSE-S3 Bucket Keys.
+    Value: !Ref S3BucketWithKMSBucketKeysToS3
+
+  S3BucketWithS3BucketKeysToKMSId:
+    Description: S3 Bucket with SSE-S3 Bucket Keys, runbook will switch it to SSE-KMS Bucket Keys.
+    Value: !Ref S3BucketWithS3BucketKeysToKMS
+
+  S3BucketWithS3BucketKeysToS3Id:
+    Description: S3 Bucket with SSE-S3 Bucket Keys, runbook will execute with SSE-S3 Bucket Keys.
+    Value: !Ref S3BucketWithS3BucketKeysToS3
+
+  S3BucketWithKMSBucketKeysToKMSId:
+    Description: S3 Bucket with SSE-KMS Bucket Keys, runbook will execute with SSE-KMS Bucket Keys.
+    Value: !Ref S3BucketWithKMSBucketKeysToKMS

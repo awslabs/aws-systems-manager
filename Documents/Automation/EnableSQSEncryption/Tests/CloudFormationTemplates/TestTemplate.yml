@@ -1,0 +1,212 @@
+#
+# Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for AWS-EnableSQSEncryption runbook
+
+Parameters:
+  #####################
+  # Naming Parameters #
+  #####################
+  RunbookShortName:
+    Default: enable-sqs-encryption
+    Description: Short name for runbook (without 'aws') that will be used when naming resources
+    Type: String
+  ###################################
+  # AutomationAssumeRole Parameters #
+  ###################################
+  UserARN:
+    Description: User ARN
+    Type: String
+    Default:
+    
+  Stage:
+    Type: String
+    Default: ""
+
+Conditions:
+  ###################################
+  # AutomationAssumeRole Conditions #
+  ###################################
+  GammaStage: !Equals [!Ref Stage, gamma]
+  GammaIad: !And [Condition: GammaStage, !Equals [us-east-1, !Ref AWS::Region]]
+  PreGammaStage: !Equals [!Ref Stage, pre-gamma]
+  PreGammaIad: !And [Condition: PreGammaStage, !Equals [us-east-1, !Ref AWS::Region]]
+
+Resources:
+  ##################################
+  # AutomationAssumeRole Resources #
+  ##################################
+  AutomationAssumeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+           - Effect: Allow
+             Principal:
+               Service:
+                 - ssm.amazonaws.com
+                 - !If [GammaIad, us-east-1.gamma.ssmautomation.aws.internal, !Ref AWS::NoValue]
+                 - !If [PreGammaIad, us-east-1.gamma.ssmautomation.aws.internal, !Ref AWS::NoValue]
+             Action: sts:AssumeRole
+           - Effect: Allow
+             Principal:
+               AWS: !Ref UserARN
+             Action: sts:AssumeRole
+      Policies:
+        - PolicyName: Automation-Policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: SSMAutomationPermissions
+                Effect: Allow
+                Action:
+                  - ssm:StartAutomationExecution
+                  - ssm:GetAutomationExecution
+                Resource: "*"
+              - Sid: RunbookPermissions
+                Effect: Allow
+                Action:
+                  - sqs:GetQueueAttributes
+                  - sqs:SetQueueAttributes
+                Resource: "*"
+  
+  #######################
+  #  Runbook Resources  #
+  #######################
+  KmsKeyForEncryption:
+    DeletionPolicy: Delete
+    Type: AWS::KMS::Key
+    Properties:
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action: kms:*
+            Resource: "*"
+            
+  KmsKeyAliasForEncryption:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/${RunbookShortName}"
+      TargetKeyId: !Ref KmsKeyForEncryption
+
+  SqsEncryptionDisabledToSseSqs:
+    Metadata:
+      TestScenario: 1a
+      RunbookExecutionStatus: Success
+    Type: AWS::SQS::Queue
+    Properties:
+      SqsManagedSseEnabled: false
+  
+  SqsEncryptionEnabledSseSqsToKms:
+    Metadata:
+      TestScenario: 1b
+      RunbookExecutionStatus: Success
+    Type: AWS::SQS::Queue
+    Properties:
+      SqsManagedSseEnabled: true
+
+  SqsEncryptionDisabledToKms:
+    Metadata:
+      TestScenario: 2a
+      RunbookExecutionStatus: Success
+    Type: AWS::SQS::Queue
+    Properties:
+      SqsManagedSseEnabled: false
+
+  SqsEncryptionEnabledKmsToSseSqs:
+    Metadata:
+      TestScenario: 2b
+      RunbookExecutionStatus: Success
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: !Ref KmsKeyForEncryption
+
+  SqsEncryptionEnabledSseSqsToKmsEncryptionAlias:
+    Metadata:
+      TestScenario: 3,4,6
+      RunbookExecutionStatus: Failed
+    Type: AWS::SQS::Queue
+    Properties:
+      SqsManagedSseEnabled: false
+
+  SqsEncryptionEnabledSseSqs:
+    Metadata:
+      TestScenario: 5
+      RunbookExecutionStatus: Failed
+    Type: AWS::SQS::Queue
+    Properties:
+      SqsManagedSseEnabled: true
+
+  SqsEncryptionEnabledKmsNonExistentDataKeyReuse:
+    Metadata:
+      TestScenario: 7
+      RunbookExecutionStatus: Failed
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: !Ref KmsKeyForEncryption
+
+Outputs:
+  ################################
+  # AutomationAssumeRole Outputs #
+  ################################
+  AutomationAssumeRoleName:
+    Description: Automation Assume Role Name
+    Value: !Ref AutomationAssumeRole
+  AutomationAssumeRoleArn:
+    Description: Automation Assume Role ARN
+    Value: !GetAtt AutomationAssumeRole.Arn
+
+  #######################
+  #  Runbook Resources  #
+  #######################
+  KmsKeyForEncryptionId:
+    Description: KMS Key that will be used for encryption with SSEAlgorithm of aws:kms.
+    Value: !Ref KmsKeyForEncryption
+  KmsKeyForEncryptionArnId:
+    Description: KMS Key that will be used for encryption with SSEAlgorithm of aws:kms.
+    Value: !GetAtt KmsKeyForEncryption.Arn
+  KmsKeyAliasForEncryptionId:
+    Description: Alias for KMS Key that will be used for encryption with SSEAlgorithm of aws:kms.
+    Value: !Ref KmsKeyAliasForEncryption
+  SqsEncryptionDisabledToSseSqsId:
+    Description: SQS Queue with Encryption disabled, runbook will add SSE-SQS Enabled.
+    Value: !Ref SqsEncryptionDisabledToSseSqs
+  SqsEncryptionDisabledToKmsId:
+    Description: SQS Queue runbook will add SSE-KMS via KMS ARN.
+    Value: !Ref SqsEncryptionDisabledToKms
+  SqsEncryptionEnabledSseSqsToKmsEncryptionAliasId:
+    Description: SQS Queue with Encryption disabled, runbook will add SSE-SQS Enabled.
+    Value: !Ref SqsEncryptionDisabledToKms
+  SqsEncryptionEnabledSseSqsToKmsId:
+    Description: SQS Queue with SSE-SQS Keys, runbook will switch it to SSE-KMS Keys.
+    Value: !Ref SqsEncryptionEnabledSseSqsToKms
+  SqsEncryptionEnabledSseSqsId:
+    Description: SQS Queue with SSE-SQS Keys, runbook will switch it to SSE-KMS Keys.
+    Value: !Ref SqsEncryptionEnabledSseSqs
+  SqsEncryptionEnabledKmsToSseSqsId:
+    Description: SQS Queue with SSE-KMS Keys, runbook will switch it to SSE-SQS Keys.
+    Value: !Ref SqsEncryptionEnabledKmsToSseSqs
+  SqsEncryptionEnabledKmsNonExistentDataKeyReuseId:
+    Description: SQS Queue with SSE-KMS Keys, runbook will switch it to SSE-SQS Keys.
+    Value: !Ref  SqsEncryptionEnabledKmsNonExistentDataKeyReuse
