@@ -1,0 +1,116 @@
+#
+# Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+schemaVersion: "0.3"
+description: |
+  ### Document name - AWS-EnableS3BucketKeys
+
+  ## What does this document do?
+  The AWS-EnableS3BucketKeys runbook enables S3 Bucket Keys on a specified S3 Bucket. This bucket-level key will create
+  data keys for new objects during its lifecycle. If the KmsKeyId parameter is not specified, server-side encryption
+  with Amazon S3 managed keys (SSE-S3) is the default encryption configuration. Note: S3 Bucket Keys aren't supported
+  for dual-layer server-side encryption with AWS Key Management Service (AWS KMS) keys (DSSE-KMS).
+
+  ## Input Parameters
+  * AutomationAssumeRole: (Optional) The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role
+    that allows Systems Manager Automation to perform the actions on your behalf. If no role is specified,
+    Systems Manager Automation uses the permissions of the user that starts this runbook.
+    * Default: ""
+  * BucketName: (Required) The name of the S3 bucket that will have Bucket Keys enabled.
+  * KmsKeyId: (Optional) The ARN, key ID, or the key alias of the of the KMS Key you want to use for
+    server-side bucket encryption.
+    * Default: ""
+
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  AutomationAssumeRole:
+    type: AWS::IAM::Role::Arn
+    description: |
+      (Optional) The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role that
+      allows Systems Manager Automation to perform the actions on your behalf. If no role is specified,
+      Systems Manager Automation uses the permissions of the user that starts this runbook.
+    default: ""
+  BucketName:
+    type: AWS::S3::Bucket::Name
+    description: (Required) The name of the S3 bucket that will have Bucket Keys enabled.
+  KmsKeyId:
+    type: String
+    description: |
+      (Optional) The ARN, key ID, or the key alias of the of the KMS Key you want to use for
+      server-side bucket encryption.
+    default: ""
+    allowedPattern: ^$|^[a-z0-9-]{1,2048}$|^mrk-[a-z0-9]{1,2044}$|^alias\/.{1,250}$|^arn:aws[a-z0-9-]*:kms:[a-z0-9-]+:\d{12}:key\/[a-z0-9-]{1,1992}$|^arn:aws[a-z0-9-]*:kms:[a-z0-9-]+:\d{12}:key\/mrk-[a-z0-9]{1,1988}$|^arn:aws[a-z0-9-]*:kms:[a-z0-9-]+:\d{12}:alias\/.{1,1990}$
+mainSteps:
+  - name: ChooseEncryptionType
+    description: |
+      ## ChooseEncryptionType
+      Evaluates the KmsKeyId parameter to determine if SSE-S3 (AES256) or SSE-KMS will be used.
+    action: aws:branch
+    inputs:
+      Choices:
+      - NextStep: PutBucketKeysKMS
+        Not:
+          Variable: "{{ KmsKeyId }}"
+          StringEquals: ""
+      Default:
+        PutBucketKeysAES256
+
+  - name: PutBucketKeysKMS
+    action: aws:executeAwsApi
+    description: |
+      ## PutBucketKeysKMS
+      Sets the BucketKeyEnabled property to True for the specified S3 Bucket using the specified KmsKeyId.
+    timeoutSeconds: 600
+    inputs:
+      Service: s3
+      Api: PutBucketEncryption
+      Bucket: "{{ BucketName }}"
+      ServerSideEncryptionConfiguration:
+        Rules:
+          - ApplyServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: "{{ KmsKeyId }}"
+            BucketKeyEnabled: True
+    nextStep: VerifyS3BucketKeysEnabled
+
+  - name: PutBucketKeysAES256
+    action: aws:executeAwsApi
+    description: |
+      ## PutBucketKeysAES256
+      Sets the BucketKeyEnabled property to True for the specified S3 Bucket with AES256 encryption.
+    timeoutSeconds: 600
+    inputs:
+      Service: s3
+      Api: PutBucketEncryption
+      Bucket: "{{ BucketName }}"
+      ServerSideEncryptionConfiguration:
+        Rules:
+          - ApplyServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: True
+    nextStep: VerifyS3BucketKeysEnabled
+
+  - name: VerifyS3BucketKeysEnabled
+    action: aws:assertAwsResourceProperty
+    description: |
+      ## VerifyS3BucketKeysEnabled
+      Verifies that the S3 Bucket Keys have been enabled on the specified S3 Bucket.
+    inputs:
+      Service: s3
+      Api: GetBucketEncryption
+      Bucket: "{{ BucketName }}"
+      PropertySelector: $.ServerSideEncryptionConfiguration.Rules[0].BucketKeyEnabled
+      DesiredValues: ["True"]
