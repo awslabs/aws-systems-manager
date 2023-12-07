@@ -1,0 +1,11 @@
+[
+  {
+    "documentName": "AWS-CreateEKSClusterWithNodegroup",
+    "documentType": "Automation",
+    "documentContentPath": "aws-CreateEKSClusterWithNodegroup.yml",
+    "documentFormat": "YAML",
+    "permissions": ["All"],
+    "integrationTests": {"tests": ["Tests/test_document.py"], "alwaysRun": false},
+    "excludeRegions": ["us-isob-east-1", "us-iso-east-1", "us-iso-west-1"]
+  }
+]
