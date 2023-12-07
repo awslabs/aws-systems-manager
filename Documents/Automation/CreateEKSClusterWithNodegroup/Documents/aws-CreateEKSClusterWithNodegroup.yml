@@ -1,0 +1,220 @@
+#
+# Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+schemaVersion: "0.3"
+description: |
+  # Document Name - AWS-CreateEKSClusterWithNodegroup
+
+  ## What does this document do?
+  The AWS-CreateEKSClusterWithNodegroup runbook creates a new Amazon Elastic Kubernetes Service (EKS) control plane
+  cluster with provisioned capacity provided by a node group. 
+  
+  **NOTE**: In the event a resource (EKS Cluster or Nodegroup) fails its respective verification step, please validate 
+  if any resources were created and remove them if necessary.
+
+  ## Input Parameters
+  * AutomationAssumeRole: (Optional) The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role
+    that allows Systems Manager Automation to perform the actions on your behalf. If no role is specified, Systems
+    Manager Automation uses the permissions of the user that starts this runbook.
+  * ClusterName: (Required) The unique name to give to your cluster.
+  * ClusterRoleArn: (Required) The Amazon Resource Name (ARN) of the IAM role that provides permissions for the
+    Kubernetes control plane to make calls to AWS API operations on your behalf. For more information, see
+    [Amazon EKS Service IAM Role](https://docs.aws.amazon.com/eks/latest/userguide/service_IAM_role.html) in the Amazon
+    EKS User Guide.
+  * NodegroupName: (Required) The unique name to give your node group.
+  * NodegroupRoleArn: (Required) The Amazon Resource Name (ARN) of the IAM role to associate with your node group. The
+    Amazon EKS worker node kubelet daemon makes calls to AWS APIs on your behalf. Nodes receive permissions for these
+    API calls through an IAM instance profile and associated policies. Before you can launch nodes and register them
+    into a cluster, you must create an IAM role for those nodes to use when they are launched. For more information,
+    see [Amazon EKS node IAM role](https://docs.aws.amazon.com/eks/latest/userguide/create-node-role.html) in the Amazon
+    EKS User Guide.
+  * SubnetIds: (Required) Subnets for your Amazon EKS nodes. Amazon EKS creates cross-account elastic network interfaces
+    in these subnets to allow communication between your nodes and the Kubernetes control plane. You must specify at
+    least two subnet IDs.
+  * EKSEndpointPrivateAccess: (Optional) Set this value to true to enable private access for your cluster's Kubernetes
+    API server endpoint. If you enable private access, Kubernetes API requests from within your cluster's VPC use the
+    private VPC endpoint. If you disable private access and you have nodes or AWS Fargate pods in the cluster, then
+    ensure that publicAccessCidrs includes the necessary CIDR blocks for communication with the nodes or Fargate pods.
+    For more information, see
+    [Amazon EKS cluster endpoint access control](https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html)
+    in the Amazon EKS User Guide.
+    * Default: true
+  * EKSEndpointPublicAccess: (Optional) Set this value to false to disable public access to your cluster's Kubernetes
+    API server endpoint. If you disable public access, your cluster's Kubernetes API server can only receive requests
+    from within the cluster VPC. For more information, see
+    [Amazon EKS cluster endpoint access control](https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html)
+    in the Amazon EKS User Guide.
+    * Default: false
+  * PublicAccessCIDRs: (Optional) The CIDR blocks that are allowed access to your cluster's public Kubernetes API server
+    endpoint. Communication to the endpoint from addresses outside of the CIDR blocks that you specify is denied. If
+    you've disabled private endpoint access and you have nodes or AWS Fargate pods in the cluster, then ensure that you
+    specify the necessary CIDR blocks. For more information, see
+    [Amazon EKS cluster endpoint access control](https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html)
+    in the Amazon EKS User Guide.
+    * Default: []
+  * SecurityGroupIds: (Optional) Specify one or more security groups for the cross-account elastic network interfaces
+    that Amazon EKS creates to use that allow communication between your nodes and the Kubernetes control plane. If you
+    don't specify any security groups, then familiarize yourself with the difference between Amazon EKS defaults for
+    clusters deployed with Kubernetes. For more information, see
+    [Amazon EKS security group considerations](https://docs.aws.amazon.com/eks/latest/userguide/sec-group-reqs.html) in
+    the Amazon EKS User Guide.
+    * Default: []
+
+  ## Output Parameters
+  * CreateEKSCluster.CreateClusterResponse: Response received from the CreateCluster API call.
+  * CreateNodegroup.CreateNodegroupResponse: Response received from the CreateNodegroup API call.
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  AutomationAssumeRole:
+    type: AWS::IAM::Role::Arn
+    description: |
+      (Optional) The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role that allows Systems
+      Manager Automation to perform the actions on your behalf. If no role is specified, Systems Manager Automation uses
+      the permissions of the user that starts this runbook.
+  ClusterName:
+    type: String
+    allowedPattern: ^[a-zA-Z0-9][a-zA-Z0-9_-]{0,1023}$
+    description: (Required) The unique name to give to your cluster.
+  ClusterRoleArn:
+    type: AWS::IAM::Role::Arn
+    description: |
+      (Required) The Amazon Resource Name (ARN) of the IAM role that provides permissions for the Kubernetes control
+      plane to make calls to AWS API operations on your behalf.
+  NodegroupName:
+    type: String
+    allowedPattern: ^[a-zA-Z0-9][a-zA-Z0-9_-]{0,1023}$
+    description: (Required) The unique name to give your node group.
+  NodegroupRoleArn:
+    type: AWS::IAM::Role::Arn
+    description: |
+      (Required) The Amazon Resource Name (ARN) of the IAM role to associate with your node group. The Amazon EKS worker
+      node kubelet daemon makes calls to AWS APIs on your behalf. Nodes receive permissions for these API calls through
+      an IAM instance profile and associated policies. Before you can launch nodes and register them into a cluster, you
+      must create an IAM role for those nodes to use when they are launched.
+  SubnetIds:
+    type: StringList
+    allowedPattern: ^subnet-[a-z0-9]{1,1017}$
+    description: |
+      (Required) Subnets for your Amazon EKS nodes. Amazon EKS creates cross-account elastic network interfaces in these
+      subnets to allow communication between your nodes and the Kubernetes control plane. You must specify at least two
+      subnet IDs.
+  EKSEndpointPrivateAccess:
+    type: Boolean
+    default: true
+    description: |
+      (Optional) Set this value to true to enable private access for your cluster's Kubernetes API server endpoint. If
+      you enable private access, Kubernetes API requests from within your cluster's VPC use the private VPC endpoint. If
+      you disable private access and you have nodes or AWS Fargate pods in the cluster, then ensure that
+      publicAccessCidrs includes the necessary CIDR blocks for communication with the nodes or Fargate pods.
+  EKSEndpointPublicAccess:
+    type: Boolean
+    default: false
+    description: |
+      (Optional) Set this value to false to disable public access to your cluster's Kubernetes API server endpoint. If
+      you disable public access, your cluster's Kubernetes API server can only receive requests from within the cluster
+      VPC.
+  PublicAccessCIDRs:
+    type: StringList
+    allowedPattern: ^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}$
+    default: []
+    description: |
+      (Optional) The CIDR blocks that are allowed access to your cluster's public Kubernetes API server endpoint.
+      Communication to the endpoint from addresses outside of the CIDR blocks that you specify is denied. If you've
+      disabled private endpoint access and you have nodes or AWS Fargate pods in the cluster, then ensure that you
+      specify the necessary CIDR blocks.
+  SecurityGroupIds:
+    type: StringList
+    allowedPattern: ^sg-[a-z0-9]{1,1021}$
+    default: []
+    description: |
+      (Optional) Specify one or more security groups for the cross-account elastic network interfaces that Amazon EKS
+      creates to use that allow communication between your nodes and the Kubernetes control plane. If you don't specify
+      any security groups, then familiarize yourself with the difference between Amazon EKS defaults for clusters
+      deployed with Kubernetes.
+outputs:
+  - CreateEKSCluster.CreateClusterResponse
+  - CreateNodegroup.CreateNodegroupResponse
+mainSteps:
+  - name: CreateEKSCluster
+    action: aws:executeAwsApi
+    description: |
+      ## CreateEKSCluster
+      Creates an Amazon EKS control plane.
+      ## Outputs
+      Response: Response from the CreateCluster API call.
+    inputs:
+      Service: eks
+      Api: CreateCluster
+      name: "{{ ClusterName }}"
+      roleArn: "{{ ClusterRoleArn }}"
+      resourcesVpcConfig:
+        endpointPrivateAccess: "{{ EKSEndpointPrivateAccess }}"
+        endpointPublicAccess: "{{ EKSEndpointPublicAccess }}"
+        publicAccessCidrs: "{{ PublicAccessCIDRs }}"
+        securityGroupIds: "{{ SecurityGroupIds }}"
+        subnetIds: "{{ SubnetIds }}"
+    outputs:
+      - Name: CreateClusterResponse
+        Type: StringMap
+        Selector: $
+
+  - name: VerifyEKSClusterIsActive
+    action: aws:waitForAwsResourceProperty
+    description: |
+      ## VerifyEKSClusterIsActive
+      Verifies the cluster has reached the ACTIVE state.
+    isCritical: true
+    inputs:
+      Service: eks
+      Api: DescribeCluster
+      name: "{{ ClusterName }}"
+      PropertySelector: $.cluster.status
+      DesiredValues:
+        - ACTIVE
+
+  - name: CreateNodegroup
+    action: aws:executeAwsApi
+    description: |
+      ## CreateNodegroup
+      Creates a managed node group for an Amazon EKS cluster.
+      ## Outputs
+      Response: Response received from the API call.
+    inputs:
+      Service: eks
+      Api: CreateNodegroup
+      clusterName: "{{ ClusterName }}"
+      nodegroupName: "{{ NodegroupName }}"
+      nodeRole: "{{ NodegroupRoleArn }}"
+      subnets: "{{ SubnetIds }}"
+    outputs:
+      - Name: CreateNodegroupResponse
+        Type: StringMap
+        Selector: $
+
+  - name: VerifyNodegroupIsActive
+    action: aws:waitForAwsResourceProperty
+    description: |
+      ## VerifyNodegroupIsActive
+      Verifies the node group has reached the ACTIVE state.
+    isCritical: true
+    inputs:
+      Service: eks
+      Api: DescribeNodegroup
+      clusterName: "{{ ClusterName }}"
+      nodegroupName: "{{ NodegroupName }}"
+      PropertySelector: $.nodegroup.status
+      DesiredValues:
+        - ACTIVE
